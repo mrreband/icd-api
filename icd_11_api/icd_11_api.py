@@ -17,7 +17,7 @@ class Api:
         self.headers = self.get_headers()
 
     def get_token(self):
-        token_path = "./.token"
+        token_path = "../.token"
         if os.path.exists(token_path):
             date_created = os.path.getmtime(token_path)
             token_age = datetime.now().timestamp() - date_created
