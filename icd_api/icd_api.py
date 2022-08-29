@@ -1,3 +1,4 @@
+import urllib.parse
 from datetime import datetime
 import os
 import requests
@@ -126,9 +127,17 @@ class Api:
         if icd_version == 10:
             uri = f"{self.base_url}/release/10/{code}"
         else:
-            uri = f"{self.base_url}/release/11/{self.release_id}/mms/codeinfo/{code}"
+            # todo: if code has a / or &, they need to be url encoded
+            uri = f"{self.base_url}/release/11/{self.release_id}/mms/codeinfo/{code}?flexiblemode=true"
         r = requests.get(uri, headers=self.headers, verify=False)
 
+        results = r.json()
+        return results
+
+    def lookup(self, foundation_uri):
+        quoted_url = urllib.parse.quote(foundation_uri, safe='')
+        uri = f"{self.base_url}/release/11/{self.release_id}/mms/lookup?foundationUri={quoted_url}"
+        r = requests.get(uri, headers=self.headers, verify=False)
         results = r.json()
         return results
 
