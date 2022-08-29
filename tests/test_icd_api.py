@@ -56,5 +56,19 @@ def test_get_code_icd_11(api):
     assert code["stemId"]
 
 
+def test_lookup(api):
+    foundation_uri = "http://id.who.int/icd/entity/1435254666"
+    results = api.lookup(foundation_uri=foundation_uri)
+    assert results["@context"]
+    assert results["@id"]
+    assert results["parent"]
+    assert results["browserUrl"]
+    assert results["code"]
+    assert results["classKind"]
+    assert results["title"]
+    assert results["relatedEntitiesInPerinatalChapter"]
+    assert results["indexTerm"]
+
+
 if __name__ == '__main__':
     pytest.main(["test_icd_api.py"])
