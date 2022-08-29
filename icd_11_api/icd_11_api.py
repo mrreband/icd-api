@@ -61,7 +61,7 @@ class Api:
 
     def search_entities(self, search_string):
         uri = f"{self.base_url}/entity/search?q={search_string}"
-        r = requests.get(uri, headers=self.headers, verify=False)
+        r = requests.post(uri, headers=self.headers, verify=False)
         results = r.json()
         if results["error"]:
             raise ValueError(results["errorMessage"])
