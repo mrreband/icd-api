@@ -12,6 +12,7 @@ class Api:
         self.client_secret = os.environ.get("CLIENT_SECRET")
         self.base_url = os.environ.get("BASE_URL")
         self.token = self.get_token()
+        self.linearisation = None
 
     def get_token(self) -> str:
         """
@@ -54,6 +55,13 @@ class Api:
                    'API-Version': 'v2'}
         return headers
 
+    @property
+    def release_id(self):
+        if self.linearisation:
+            return self.linearisation.latest_release.split("/")[-2]
+        else:
+            return "2022-02"
+
     def get_entity(self, entity_id: int) -> dict:
         """
         :param entity_id: id of an ICD-11 foundation entity
@@ -79,7 +87,7 @@ class Api:
             raise ValueError(results["errorMessage"])
         return results["destinationEntities"]
 
-    def get_linearisation(self, linearisation_name: str, release_id: str = None) -> Linearisation:
+    def set_linearisation(self, linearisation_name: str, release_id: str = None) -> Linearisation:
         """
         :return: basic information on the linearisation together with the list of available releases
         :rtype: Linearisation
@@ -96,6 +104,7 @@ class Api:
                                       title=results["title"],
                                       latest_release=results["latestRelease"],
                                       releases=results["release"])
+        self.linearisation = linearisation
         return linearisation
 
     def get_entity_linearization(self, entity_id: int, linearisation_name: str = "mms"):
@@ -117,7 +126,7 @@ class Api:
         if icd_version == 10:
             uri = f"{self.base_url}/release/10/{code}"
         else:
-            uri = f"{self.base_url}/release/11/mms/codeInfo/{code}"
+            uri = f"{self.base_url}/release/11/{self.release_id}/mms/codeinfo/{code}"
         r = requests.get(uri, headers=self.headers, verify=False)
 
         results = r.json()
