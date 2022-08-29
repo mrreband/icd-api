@@ -21,5 +21,16 @@ def test_search_entities(api):
     assert search_results
 
 
+def test_get_linearization(api):
+    # are there any valid linearisations besides 'mms'?
+    linearization_name = "mms"
+    linearization = api.get_linearization(linearisation_name=linearization_name)
+    assert linearization
+    for release_url in linearization["release"]:
+        release_id = release_url.strip("/mms").split("/")[-1]
+        release = api.get_linearization(linearisation_name=linearization_name, release_id=release_id)
+        assert release
+
+
 if __name__ == '__main__':
     pytest.main(["test_icd_api.py"])

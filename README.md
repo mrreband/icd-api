@@ -1,4 +1,4 @@
-# ICD 11 API Requests library 
+# ICD API Requests library 
 
 Forked from [Python-samples](https://github.com/ICD-API/Python-samples)
 
