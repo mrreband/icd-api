@@ -3,7 +3,7 @@ from datetime import datetime
 import os
 import requests
 
-from icd_api.linearisation import Linearisation
+from icd_api.linearization import linearization
 
 
 class Api:
@@ -13,7 +13,7 @@ class Api:
         self.client_secret = os.environ.get("CLIENT_SECRET")
         self.base_url = os.environ.get("BASE_URL")
         self.token = self.get_token()
-        self.linearisation = None
+        self.linearization = None
 
     def get_token(self) -> str:
         """
@@ -58,8 +58,8 @@ class Api:
 
     @property
     def release_id(self):
-        if self.linearisation:
-            return self.linearisation.latest_release.split("/")[-2]
+        if self.linearization:
+            return self.linearization.latest_release.split("/")[-2]
         else:
             return "2022-02"
 
@@ -92,32 +92,32 @@ class Api:
         results = self.search(uri=uri)
         return results["destinationEntities"]
 
-    def set_linearisation(self, linearisation_name: str, release_id: str = None) -> Linearisation:
+    def set_linearization(self, linearization_name: str, release_id: str = None) -> linearization:
         """
-        :return: basic information on the linearisation together with the list of available releases
-        :rtype: Linearisation
+        :return: basic information on the linearization together with the list of available releases
+        :rtype: linearization
         """
         if release_id:
-            uri = f"{self.base_url}/release/11/{release_id}/{linearisation_name}"
+            uri = f"{self.base_url}/release/11/{release_id}/{linearization_name}"
         else:
-            uri = f"{self.base_url}/release/11/{linearisation_name}"
+            uri = f"{self.base_url}/release/11/{linearization_name}"
 
         r = requests.get(uri, headers=self.headers, verify=False)
         results = r.json()
-        linearisation = Linearisation(context=results["@context"],
+        linearization = linearization(context=results["@context"],
                                       oid=results["@id"],
                                       title=results["title"],
                                       latest_release=results["latestRelease"],
                                       releases=results["release"])
-        self.linearisation = linearisation
-        return linearisation
+        self.linearization = linearization
+        return linearization
 
-    def get_entity_linearization(self, entity_id: int, linearisation_name: str = "mms"):
+    def get_entity_linearization(self, entity_id: int, linearization_name: str = "mms"):
         """
         :return: a list of URIs of the entity in the available releases
         :rtype: List
         """
-        uri = f"{self.base_url}/release/11/{linearisation_name}/{entity_id}"
+        uri = f"{self.base_url}/release/11/{linearization_name}/{entity_id}"
         r = requests.get(uri, headers=self.headers, verify=False)
 
         results = r.json()
@@ -156,7 +156,7 @@ class Api:
         results = r.json()
         return results
 
-    def search_linearisation(self, search_string: str):
+    def search_linearization(self, search_string: str):
         uri = f"{self.base_url}/release/11/{self.release_id}/mms/search?q={search_string}"
         results = self.search(uri=uri)
         return results["destinationEntities"]
