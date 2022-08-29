@@ -127,14 +127,25 @@ class Api:
         if icd_version == 10:
             uri = f"{self.base_url}/release/10/{code}"
         else:
-            # todo: if code has a / or &, they need to be url encoded
-            uri = f"{self.base_url}/release/11/{self.release_id}/mms/codeinfo/{code}?flexiblemode=true"
+            quoted_code = urllib.parse.quote(code, safe="")
+            uri = f"{self.base_url}/release/11/{self.release_id}/mms/codeinfo/{quoted_code}?flexiblemode=true"
         r = requests.get(uri, headers=self.headers, verify=False)
 
         results = r.json()
         return results
 
     def lookup(self, foundation_uri):
+        """
+        This endpoint allows looking up a foundation entity within a linearization
+        and returns where that entity is coded in this linearization.
+
+        If the foundation entity is included in the linearization and has a code then that linearization entity
+        is returned. If the foundation entity in included in the linearization but it is a grouping without a code
+        then the system will return the unspecified residual category under that grouping.
+
+        If the entity is not included in the linearization then the system checks where that entity
+        is aggregated to and then returns that entity.
+        """
         quoted_url = urllib.parse.quote(foundation_uri, safe='')
         uri = f"{self.base_url}/release/11/{self.release_id}/mms/lookup?foundationUri={quoted_url}"
         r = requests.get(uri, headers=self.headers, verify=False)
