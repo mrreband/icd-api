@@ -1,6 +1,6 @@
 import pytest as pytest
 
-from icd_11_api import Api
+from icd_api import Api
 
 
 @pytest.fixture
@@ -22,4 +22,4 @@ def test_search_entities(api):
 
 
 if __name__ == '__main__':
-    pytest.main(["test_icd_11_api.py"])
+    pytest.main(["test_icd_api.py"])
