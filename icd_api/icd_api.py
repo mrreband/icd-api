@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from dotenv import load_dotenv, find_dotenv
 import os
@@ -66,6 +67,30 @@ class Api:
         if results["error"]:
             raise ValueError(results["errorMessage"])
         return results["destinationEntities"]
+
+    def get_linearization(self, linearisation_name: str, release_id: str = None):
+        if release_id:
+            uri = f"{self.base_url}/release/11/{release_id}/{linearisation_name}"
+        else:
+            uri = f"{self.base_url}/release/11/{linearisation_name}"
+
+        r = requests.get(uri, headers=self.headers, verify=False)
+        results = r.json()
+        linearisation = Linearization(context=results["@context"],
+                                      oid=results["@id"],
+                                      title=results["title"],
+                                      latest_release=results["latestRelease"],
+                                      releases=results["release"])
+        return linearisation
+
+
+@dataclass
+class Linearization:
+    context: str            # url to context
+    oid: str                # url to linearization
+    title: dict             # language (str) and value (str)
+    latest_release: str     # url to latest release
+    releases: list          # list of urls to prior releases
 
 
 if __name__ == "__main__":
