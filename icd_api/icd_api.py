@@ -76,16 +76,20 @@ class Api:
         results = r.json()
         return results
 
+    def search(self, uri):
+        r = requests.post(uri, headers=self.headers, verify=False)
+        results = r.json()
+        if results["error"]:
+            raise ValueError(results["errorMessage"])
+        return results
+
     def search_entities(self, search_string: str) -> list:
         """
         :param search_string:
         :return:
         """
         uri = f"{self.base_url}/entity/search?q={search_string}"
-        r = requests.post(uri, headers=self.headers, verify=False)
-        results = r.json()
-        if results["error"]:
-            raise ValueError(results["errorMessage"])
+        results = self.search(uri=uri)
         return results["destinationEntities"]
 
     def set_linearisation(self, linearisation_name: str, release_id: str = None) -> Linearisation:
@@ -151,6 +155,11 @@ class Api:
         r = requests.get(uri, headers=self.headers, verify=False)
         results = r.json()
         return results
+
+    def search_linearisation(self, search_string: str):
+        uri = f"{self.base_url}/release/11/{self.release_id}/mms/search?q={search_string}"
+        results = self.search(uri=uri)
+        return results["destinationEntities"]
 
 
 if __name__ == "__main__":
