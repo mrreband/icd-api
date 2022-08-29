@@ -70,5 +70,10 @@ def test_lookup(api):
     assert results["indexTerm"]
 
 
+def test_search_linearisation(api):
+    results = api.search_linearisation(search_string="diabetes")
+    assert results
+
+
 if __name__ == '__main__':
     pytest.main(["test_icd_api.py"])
