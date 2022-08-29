@@ -1,11 +1,8 @@
-from dataclasses import dataclass
 from datetime import datetime
-from dotenv import load_dotenv, find_dotenv
 import os
 import requests
 
-
-load_dotenv(find_dotenv())
+from icd_api.linearisation import Linearisation
 
 
 class Api:
@@ -15,9 +12,12 @@ class Api:
         self.client_secret = os.environ.get("CLIENT_SECRET")
         self.base_url = os.environ.get("BASE_URL")
         self.token = self.get_token()
-        self.headers = self.get_headers()
 
-    def get_token(self):
+    def get_token(self) -> str:
+        """
+        :return: authorization token, valid for up to one hour, may be cached in a local `.token` file
+        :rtype: str
+        """
         token_path = "../.token"
         if os.path.exists(token_path):
             date_created = os.path.getmtime(token_path)
@@ -45,7 +45,8 @@ class Api:
 
         return token
 
-    def get_headers(self):
+    @property
+    def headers(self) -> dict:
         # HTTP header fields to set
         headers = {'Authorization': 'Bearer ' + self.token,
                    'Accept': 'application/json',
@@ -53,14 +54,24 @@ class Api:
                    'API-Version': 'v2'}
         return headers
 
-    def get_entity(self, entity_id):
+    def get_entity(self, entity_id: int) -> dict:
+        """
+        :param entity_id: id of an ICD-11 foundation entity
+        :type entity_id: int
+        :return: information on the specified ICD-11 foundation entity
+        :rtype: dict
+        """
         uri = f"{self.base_url}/entity/{entity_id}"
         r = requests.get(uri, headers=self.headers, verify=False)
 
         results = r.json()
         return results
 
-    def search_entities(self, search_string):
+    def search_entities(self, search_string: str) -> list:
+        """
+        :param search_string:
+        :return:
+        """
         uri = f"{self.base_url}/entity/search?q={search_string}"
         r = requests.post(uri, headers=self.headers, verify=False)
         results = r.json()
@@ -68,7 +79,11 @@ class Api:
             raise ValueError(results["errorMessage"])
         return results["destinationEntities"]
 
-    def get_linearization(self, linearisation_name: str, release_id: str = None):
+    def get_linearisation(self, linearisation_name: str, release_id: str = None) -> Linearisation:
+        """
+        :return: basic information on the linearisation together with the list of available releases
+        :rtype: Linearisation
+        """
         if release_id:
             uri = f"{self.base_url}/release/11/{release_id}/{linearisation_name}"
         else:
@@ -76,21 +91,37 @@ class Api:
 
         r = requests.get(uri, headers=self.headers, verify=False)
         results = r.json()
-        linearisation = Linearization(context=results["@context"],
+        linearisation = Linearisation(context=results["@context"],
                                       oid=results["@id"],
                                       title=results["title"],
                                       latest_release=results["latestRelease"],
                                       releases=results["release"])
         return linearisation
 
+    def get_entity_linearization(self, entity_id: int, linearisation_name: str = "mms"):
+        """
+        :return: a list of URIs of the entity in the available releases
+        :rtype: List
+        """
+        uri = f"{self.base_url}/release/11/{linearisation_name}/{entity_id}"
+        r = requests.get(uri, headers=self.headers, verify=False)
 
-@dataclass
-class Linearization:
-    context: str            # url to context
-    oid: str                # url to linearization
-    title: dict             # language (str) and value (str)
-    latest_release: str     # url to latest release
-    releases: list          # list of urls to prior releases
+        results = r.json()
+        return results
+
+    def get_code(self, icd_version: int, code: str):
+        """
+        :return: a list of URIs of the entity in the available releases
+        :rtype: List
+        """
+        if icd_version == 10:
+            uri = f"{self.base_url}/release/10/{code}"
+        else:
+            uri = f"{self.base_url}/release/11/mms/codeInfo/{code}"
+        r = requests.get(uri, headers=self.headers, verify=False)
+
+        results = r.json()
+        return results
 
 
 if __name__ == "__main__":
