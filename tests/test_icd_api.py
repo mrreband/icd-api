@@ -9,7 +9,7 @@ load_dotenv(find_dotenv())
 @pytest.fixture
 def api():
     _api = Api()
-    _api.set_linearisation("mms")
+    _api.set_linearization("mms")
     return _api
 
 
@@ -27,15 +27,15 @@ def test_search_entities(api):
 
 
 def test_set_linearization(api):
-    # are there any valid linearisations besides 'mms'?
+    # are there any valid linearizations besides 'mms'?
     linearization_name = "mms"
-    linearization = api.set_linearisation(linearisation_name=linearization_name)
+    linearization = api.set_linearization(linearization_name=linearization_name)
     assert linearization
 
 
 def test_get_entity_linearization(api):
     linearization_name = "mms"
-    linearization = api.get_entity_linearization(entity_id=1630407678, linearisation_name=linearization_name)
+    linearization = api.get_entity_linearization(entity_id=1630407678, linearization_name=linearization_name)
     assert linearization
 
 
@@ -70,8 +70,8 @@ def test_lookup(api):
     assert results["indexTerm"]
 
 
-def test_search_linearisation(api):
-    results = api.search_linearisation(search_string="diabetes")
+def test_search_linearization(api):
+    results = api.search_linearization(search_string="diabetes")
     assert results
 
 
