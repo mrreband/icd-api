@@ -8,7 +8,9 @@ load_dotenv(find_dotenv())
 
 @pytest.fixture
 def api():
-    return Api()
+    _api = Api()
+    _api.set_linearisation("mms")
+    return _api
 
 
 def test_get_entity(api):
@@ -24,10 +26,10 @@ def test_search_entities(api):
     assert search_results
 
 
-def test_get_linearization(api):
+def test_set_linearization(api):
     # are there any valid linearisations besides 'mms'?
     linearization_name = "mms"
-    linearization = api.get_linearisation(linearisation_name=linearization_name)
+    linearization = api.set_linearisation(linearisation_name=linearization_name)
     assert linearization
 
 
@@ -37,9 +39,21 @@ def test_get_entity_linearization(api):
     assert linearization
 
 
-def test_get_code(api):
+def test_get_code_icd_10(api):
     code = api.get_code(icd_version=10, code="M54.5")
-    assert code
+    assert code["@context"]
+    assert code["@id"]
+    assert code["title"]
+    assert code["latestRelease"]
+    assert code["release"]
+
+
+def test_get_code_icd_11(api):
+    code = api.get_code(icd_version=11, code="ME84.2")
+    assert code["@context"]
+    assert code["@id"]
+    assert code["code"]
+    assert code["stemId"]
 
 
 if __name__ == '__main__':
