@@ -11,7 +11,8 @@ Usage:
 - make an instance of Api class:
 
 ```python
-from icd_11_api import Api
+from icd_api import Api
+
 api = Api()
 ```
 - use the api class to make requests: 
