@@ -3,7 +3,7 @@ from datetime import datetime
 import os
 import requests
 
-from icd_api.linearization import linearization
+from icd_api.linearisation import Linearisation
 
 
 class Api:
@@ -92,7 +92,7 @@ class Api:
         results = self.search(uri=uri)
         return results["destinationEntities"]
 
-    def set_linearization(self, linearization_name: str, release_id: str = None) -> linearization:
+    def set_linearization(self, linearization_name: str, release_id: str = None) -> Linearisation:
         """
         :return: basic information on the linearization together with the list of available releases
         :rtype: linearization
@@ -104,7 +104,7 @@ class Api:
 
         r = requests.get(uri, headers=self.headers, verify=False)
         results = r.json()
-        linearization = linearization(context=results["@context"],
+        linearization = Linearisation(context=results["@context"],
                                       oid=results["@id"],
                                       title=results["title"],
                                       latest_release=results["latestRelease"],
