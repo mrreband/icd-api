@@ -1,6 +1,8 @@
 import urllib.parse
 from datetime import datetime
 import os
+from time import sleep
+
 import requests
 
 from icd_api.linearisation import Linearisation
@@ -12,8 +14,12 @@ class Api:
         self.client_id = os.environ.get("CLIENT_ID")
         self.client_secret = os.environ.get("CLIENT_SECRET")
         self.base_url = os.environ.get("BASE_URL")
-        self.token = self.get_token()
         self.linearization = None
+
+        if self.use_auth_token:
+            self.token = self.get_token()
+        else:
+            self.token = ""
 
     def get_token(self) -> str:
         """
@@ -46,6 +52,19 @@ class Api:
             token_file.write(token)
 
         return token
+
+    @property
+    def use_auth_token(self) -> bool:
+        """
+        If the target server is locally deployed, authentication is not required:
+        https://icd.who.int/icdapi/docs2/ICDAPI-LocalDeployment/
+
+        :return: whether the instance contains all required info for getting an OATH2 auth token
+        :rtype: bool
+        """
+        return self.token_endpoint is not None \
+            and self.client_id is not None \
+            and self.client_secret is not None
 
     @property
     def headers(self) -> dict:
