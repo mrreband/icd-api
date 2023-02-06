@@ -1,7 +1,6 @@
 import urllib.parse
 from datetime import datetime
 import os
-from time import sleep
 
 import requests
 
@@ -94,6 +93,39 @@ class Api:
 
         results = r.json()
         return results
+
+    def get_ancestors(self, entity_id: int, entities: list = None, depth: int = 0) -> list:
+        """
+        get all entities listed under entity.child, recursively
+
+        :param entity_id: entity_id to look up - initially the root
+        :param entities: list of already-traversed entities (initially empty)
+        :param depth: current depth
+        :return: full list of all ancestry under the root
+        :rtype: list
+        """
+        if entities is None:
+            entities = []
+
+        entity = self.get_entity(entity_id=entity_id)
+
+        parent_ids = [p.split("/")[-1] for p in entity["parent"]]
+        label = entity["title"]["@value"]
+        # print(f"{' '*depth} get_entity: {entity_id} - {label}")
+
+        short_entity = {
+            "entity_id": entity_id,
+            "depth": depth,
+            "label": label,
+            "child_entities": [],
+            "parent_ids": parent_ids
+        }
+        entities.append(short_entity)
+
+        for child in entity.get("child", []):
+            child_id = child.split("/")[-1]
+            self.get_ancestors(entities=short_entity["child_entities"], entity_id=child_id, depth=depth + 1)
+        return entities
 
     def search(self, uri):
         r = requests.post(uri, headers=self.headers, verify=False)
