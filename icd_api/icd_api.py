@@ -1,10 +1,19 @@
+import time
 import urllib.parse
 from datetime import datetime
 import os
 
 import requests
+from dataclasses import dataclass
 
-from icd_api.linearisation import Linearisation
+
+@dataclass
+class Linearisation:
+    context: str            # url to context
+    oid: str                # url to linearization
+    title: dict             # language (str) and value (str)
+    latest_release: str     # url to latest release
+    releases: list          # list of urls to prior releases
 
 
 class Api:
@@ -14,6 +23,7 @@ class Api:
         self.client_secret = os.environ.get("CLIENT_SECRET")
         self.base_url = os.environ.get("BASE_URL")
         self.linearization = None
+        self.throttled = False
 
         if self.use_auth_token:
             self.token = self.get_token()
@@ -39,10 +49,12 @@ class Api:
 
         scope = 'icdapi_access'
         grant_type = 'client_credentials'
-        payload = {'client_id': self.client_id,
-                   'client_secret': self.client_secret,
-                   'scope': scope,
-                   'grant_type': grant_type}
+        payload = {
+            'client_id': self.client_id,
+            'client_secret': self.client_secret,
+            'scope': scope,
+            'grant_type': grant_type,
+        }
 
         r = requests.post(self.token_endpoint, data=payload, verify=False).json()
         token = r['access_token']
@@ -61,17 +73,17 @@ class Api:
         :return: whether the instance contains all required info for getting an OATH2 auth token
         :rtype: bool
         """
-        return self.token_endpoint is not None \
-            and self.client_id is not None \
-            and self.client_secret is not None
+        return self.token_endpoint is not None and self.client_id is not None and self.client_secret is not None
 
     @property
     def headers(self) -> dict:
         # HTTP header fields to set
-        headers = {'Authorization': 'Bearer ' + self.token,
-                   'Accept': 'application/json',
-                   'Accept-Language': 'en',
-                   'API-Version': 'v2'}
+        headers = {
+            'Authorization': 'Bearer ' + self.token,
+            'Accept': 'application/json',
+            'Accept-Language': 'en',
+            'API-Version': 'v2',
+        }
         return headers
 
     @property
@@ -108,6 +120,9 @@ class Api:
             entities = []
 
         entity = self.get_entity(entity_id=entity_id)
+        keys = list(entity.keys())
+        known_keys = ["@context", "@id", "parent", "browserUrl", "title", "child"]
+        extra_keys = [k for k in keys if k not in known_keys]
 
         parent_ids = [p.split("/")[-1] for p in entity["parent"]]
         label = entity["title"]["@value"]
@@ -118,13 +133,43 @@ class Api:
             "depth": depth,
             "label": label,
             "child_entities": [],
-            "parent_ids": parent_ids
+            "parent_ids": parent_ids,
         }
+        if "synonym" in extra_keys:
+            short_entity["synonym"] = entity["synonym"]
+        if extra_keys:
+            short_entity["keys"] = extra_keys
         entities.append(short_entity)
 
         for child in entity.get("child", []):
             child_id = child.split("/")[-1]
-            self.get_ancestors(entities=short_entity["child_entities"], entity_id=child_id, depth=depth + 1)
+            existing = next(iter([e for e in entities if e["entity_id"] == child_id]), None)
+            if existing is None:
+                self.get_ancestors(entities=short_entity["child_entities"], entity_id=child_id, depth=depth + 1)
+        return entities
+
+    def get_leaf_nodes(self, entity_id: int, entities: list = None) -> list:
+        """
+        get leaf entities, those with no children of their own
+
+        :param entity_id: entity_id to look up - initially the root
+        :param entities: list of already-traversed entities (initially empty)
+        :return: list of all leaf node ids
+        :rtype: list[str]
+        """
+        if entities is None:
+            entities = []
+        entity = self.get_entity(entity_id=entity_id)
+
+        if "child" not in entity.keys():
+            # this is a leaf node
+            entities.append(entity_id)
+        else:
+            for child_uri in entity.get("child", []):
+                child_id = child_uri.split("/")[-1]
+                existing = next(iter([e for e in entities if e == child_id]), None)
+                if existing is None:
+                    self.get_leaf_nodes(entities=entities, entity_id=child_id)
         return entities
 
     def search(self, uri):
@@ -155,11 +200,13 @@ class Api:
 
         r = requests.get(uri, headers=self.headers, verify=False)
         results = r.json()
-        linearization = Linearisation(context=results["@context"],
-                                      oid=results["@id"],
-                                      title=results["title"],
-                                      latest_release=results["latestRelease"],
-                                      releases=results["release"])
+        linearization = Linearisation(
+            context=results["@context"],
+            oid=results["@id"],
+            title=results["title"],
+            latest_release=results["latestRelease"],
+            releases=results["release"],
+        )
         self.linearization = linearization
         return linearization
 
@@ -173,6 +220,55 @@ class Api:
 
         results = r.json()
         return results
+
+    def get_uri(self, uri: str):
+        """
+        :return: a list of URIs of the entity in the available releases
+        :rtype: List
+        """
+        url = f"{self.base_url}/{uri}"
+        r = requests.get(url, headers=self.headers, verify=False)
+
+        results = r.json()
+        return results
+
+    def get_url(self, url: str):
+        """
+        :return: a list of URIs of the entity in the available releases
+        :rtype: List
+        """
+        r = requests.get(url, headers=self.headers, verify=False)
+
+        results = r.json()
+        return results
+
+    def get_url_recurse(self, url: str, items: list, depth: int = 0):
+        """
+        :return: a list of URIs of the entity in the available releases
+        :rtype: List
+        """
+        max_depth = 0
+        r = requests.get(url, headers=self.headers, verify=False)
+        time.sleep(0.5)
+
+        if r.status_code == 200:
+            self.throttled = False
+            results = r.json()
+            items.append(results)
+            if depth <= max_depth:
+                for child in results.get("child", []):
+                    self.get_url_recurse(url=child, items=items, depth=depth + 1)
+            return items
+        elif r.status_code == 401:
+            print("401 - throttling")
+            if self.throttled:
+                raise ConnectionRefusedError("response 401 twice")
+            # too many requests - wait 10 minutes then try again
+            self.throttled = True
+            time.sleep(600)
+            return self.get_url_recurse(url=url, items=items, depth=depth)
+        else:
+            raise ConnectionError(f"error {r.status_code}", r)
 
     def get_code(self, icd_version: int, code: str):
         """
