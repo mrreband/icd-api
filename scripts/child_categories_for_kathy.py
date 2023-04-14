@@ -131,6 +131,8 @@ def get_entity_children(foundation_entity: FoundationEntity,
         child_id = child_uri.split("/")[-1]
         child_entity = api.get_entity(entity_id=child_id)
         child_lookup = api.lookup(foundation_uri=child_uri) or dict()
+
+        # leaf-node entities with no code actually show their parent's code in lookup results - clear those out
         child_code = child_lookup.get("code", "")
         code_exists = any([child_code == ce.get("code", "") for ce in child_entities])
 
