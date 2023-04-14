@@ -102,9 +102,13 @@ class Api:
         """
         uri = f"{self.base_url}/entity/{entity_id}"
         r = requests.get(uri, headers=self.headers, verify=False)
-
-        results = r.json()
-        return results
+        if r.status_code == 200:
+            results = r.json()
+            return results
+        elif r.status_code == 404:
+            return None
+        else:
+            raise ValueError(f"Api.get_entity -- unexpected Response {r.status_code}")
 
     def get_ancestors(self, entity_id: int, entities: list = None, depth: int = 0) -> list:
         """
@@ -300,8 +304,13 @@ class Api:
         quoted_url = urllib.parse.quote(foundation_uri, safe='')
         uri = f"{self.base_url}/release/11/{self.release_id}/mms/lookup?foundationUri={quoted_url}"
         r = requests.get(uri, headers=self.headers, verify=False)
-        results = r.json()
-        return results
+        if r.status_code == 200:
+            results = r.json()
+            return results
+        elif r.status_code == 404:
+            return None
+        else:
+            raise ValueError(f"Api.lookup -- unexpected Response {r.status_code}")
 
     def search_linearization(self, search_string: str):
         uri = f"{self.base_url}/release/11/{self.release_id}/mms/search?q={search_string}"
