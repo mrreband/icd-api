@@ -6,6 +6,8 @@ import os
 import requests
 from dataclasses import dataclass
 
+from icd_api.icd_entity import Entity
+
 
 @dataclass
 class Linearisation:
@@ -93,18 +95,18 @@ class Api:
         else:
             return "2023-01"
 
-    def get_entity(self, entity_id: int) -> dict:
+    def get_entity(self, entity_id: int) -> Entity:
         """
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
         :return: information on the specified ICD-11 foundation entity
-        :rtype: dict
+        :rtype: Entity
         """
         uri = f"{self.base_url}/entity/{entity_id}"
         r = requests.get(uri, headers=self.headers, verify=False)
         if r.status_code == 200:
             results = r.json()
-            return results
+            return Entity.from_api(results)
         elif r.status_code == 404:
             return None
         else:
@@ -124,38 +126,21 @@ class Api:
         if entities is None:
             entities = []
 
-        entity = self.get_entity(entity_id=entity_id)
-        keys = list(entity.keys())
-        known_keys = ["@context", "@id", "parent", "browserUrl", "title", "child"]
-        extra_keys = [k for k in keys if k not in known_keys]
+        icd_entity = self.get_entity(entity_id=entity_id)
+        icd_entity.depth = depth
 
-        parent_ids = [p.split("/")[-1] for p in entity["parent"]]
-        label = entity["title"]["@value"]
-        print(f"{' '*depth} get_entity: {entity_id} - {label}")
+        print(f"{' '*depth} get_entity: {icd_entity}")
 
-        short_entity = {
-            "entity_id": entity_id,
-            "depth": depth,
-            "label": label,
-            "parent_ids": parent_ids,
-        }
         if nested_output:
-            short_entity["child_entities"] = []
+            icd_entity.child_entities = []
 
-        if "synonym" in extra_keys:
-            short_entity["synonym"] = entity["synonym"]
-        if "exclusion" in extra_keys:
-            short_entity["exclusion"] = entity["exclusion"]
-        if extra_keys:
-            short_entity["keys"] = extra_keys
-        entities.append(short_entity)
+        entities.append(icd_entity)
 
-        for child in entity.get("child", []):
-            child_id = child.split("/")[-1]
-            existing = next(iter([e for e in entities if e["entity_id"] == child_id]), None)
+        for child_id in icd_entity.child_ids:
+            existing = next(iter([e for e in entities if e.entity_id == child_id]), None)
             if existing is None:
                 if nested_output:
-                    self.get_ancestors(entities=short_entity["child_entities"],
+                    self.get_ancestors(entities=icd_entity.child_entities,
                                        entity_id=child_id,
                                        depth=depth + 1,
                                        nested_output=nested_output)
@@ -179,12 +164,11 @@ class Api:
             entities = []
         entity = self.get_entity(entity_id=entity_id)
 
-        if "child" not in entity.keys():
+        if not entity.child_ids:
             # this is a leaf node
             entities.append(entity_id)
         else:
-            for child_uri in entity.get("child", []):
-                child_id = child_uri.split("/")[-1]
+            for child_id in entity.child_ids:
                 existing = next(iter([e for e in entities if e == child_id]), None)
                 if existing is None:
                     self.get_leaf_nodes(entities=entities, entity_id=child_id)
@@ -303,7 +287,7 @@ class Api:
         results = r.json()
         return results
 
-    def lookup(self, foundation_uri) -> list:
+    def lookup(self, foundation_uri) -> dict:
         """
         This endpoint allows looking up a foundation entity within the mms linearization
         and returns where that entity is coded in this linearization.
