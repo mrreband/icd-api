@@ -15,7 +15,7 @@ from openpyxl.styles import Font, Color
 from openpyxl.styles.colors import BLUE
 
 from icd_api import Api
-from icd_api.parse_csvs import load_csv
+from icd_api.util import load_csv
 
 load_dotenv(find_dotenv())
 
