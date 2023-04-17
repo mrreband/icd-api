@@ -4,19 +4,19 @@ from collections import defaultdict
 from dotenv import load_dotenv, find_dotenv
 
 from icd_api import Api
+from icd_api.util import write_json
 
 load_dotenv(find_dotenv())
 
 icdapi_folder = os.path.dirname(os.path.dirname(__file__))
 output_folder = os.path.join(icdapi_folder, "output")
-root_entity_path = os.path.join(output_folder, "root_entity.json")
-children_csv_path = os.path.join(output_folder, "children.json")
-parents_csv_path = os.path.join(output_folder, "parents.json")
-filtered_output_path = os.path.join(output_folder, "children_with_multiple_parents.json")
 root_entity_id = 448895267
 
 
 def get_aggregates(file_path: str):
+    """
+    get counts of csvs of parents and children
+    """
     with open(file_path, "r", encoding="utf8") as file:
         detail = file.readlines()
         detail = [c.strip("\n").split(",") for c in detail]
@@ -29,15 +29,20 @@ def get_aggregates(file_path: str):
 
 
 def get_children_with_multiple_parents(entities: list, results: list):
+    """
+    get all children that have more than one parent
+    """
     for entity in entities:
         if entity["parent_count"] > 0:
             results.append(entity)
             return get_children_with_multiple_parents(entities=entity.get("child_entities", []), results=results)
+
+    filtered_output_path = os.path.join(output_folder, "children_with_multiple_parents.json")
     write_json(data=results, file_path=filtered_output_path)
     return results
 
 
-def load_all():
+def load_root_entity():
     data = dict()
     with open(r"C:\Users\mr\source\repos\icd-api\output\root_entity.json", "r", encoding="utf8") as file:
         data["entities"] = json.loads(file.read())
@@ -56,11 +61,6 @@ def get_counts(entities, parents):
     return entities
 
 
-def write_json(data, file_path):
-    with open(file_path, "w", encoding="utf8") as file:
-        file.write(json.dumps(data, indent=4))
-
-
 def get_leaf_nodes():
     api = Api()
     leaf_nodes = api.get_leaf_nodes(entity_id=root_entity_id)
@@ -70,7 +70,7 @@ def get_leaf_nodes():
 
 
 if __name__ == '__main__':
-    # data = load_all()
+    # data = load_root_entity()
     # get_counts(entities=data["entities"], parents=data["parents"])
     # get_children_with_multiple_parents(entities=data["entities"], results=[])
     # print(data)
