@@ -91,7 +91,7 @@ class Api:
         if self.linearization:
             return self.linearization.latest_release.split("/")[-2]
         else:
-            return "2022-02"
+            return "2023-01"
 
     def get_entity(self, entity_id: int) -> dict:
         """
@@ -117,7 +117,7 @@ class Api:
         :param entity_id: entity_id to look up - initially the root
         :param entities: list of already-traversed entities (initially empty)
         :param depth: current depth
-        :return: full list of all ancestry under the root
+        :return: full list of all ancestry under the root, with nested structure
         :rtype: list
         """
         if entities is None:
@@ -141,6 +141,8 @@ class Api:
         }
         if "synonym" in extra_keys:
             short_entity["synonym"] = entity["synonym"]
+        if "exclusion" in extra_keys:
+            short_entity["exclusion"] = entity["exclusion"]
         if extra_keys:
             short_entity["keys"] = extra_keys
         entities.append(short_entity)
@@ -291,7 +293,7 @@ class Api:
 
     def lookup(self, foundation_uri):
         """
-        This endpoint allows looking up a foundation entity within a linearization
+        This endpoint allows looking up a foundation entity within the mms linearization
         and returns where that entity is coded in this linearization.
 
         If the foundation entity is included in the linearization and has a code then that linearization entity
