@@ -28,7 +28,7 @@ def test_get_all_children(api):
     parent_folder = os.path.dirname(__file__)
     target_file_path = os.path.join(parent_folder, f"output/{root_entity_id}_children.json")
     with open(target_file_path, "w") as file:
-        data = json.dumps(all_entities, indent=4)
+        data = json.dumps(all_entities, default=lambda e: e.__dict__, indent=4)
         file.write(data)
 
     assert all_entities
@@ -38,7 +38,7 @@ def test_get_entity(api):
     entity = api.get_entity(1920852714)
     assert entity
 
-    for child in entity["child"]:
+    for child in entity.child_ids:
         print(child)
 
 
@@ -61,12 +61,13 @@ def test_get_entity_linearization(api):
 
 
 def test_get_code_icd_10(api):
-    code = api.get_code(icd_version=10, code="M54.5")
-    assert code["@context"]
-    assert code["@id"]
-    assert code["title"]
-    assert code["latestRelease"]
-    assert code["release"]
+    if os.getenv("CLIENT_ID") and os.getenv("CLIENT_SECRET"):
+        code = api.get_code(icd_version=10, code="M54.5")
+        assert code["@context"]
+        assert code["@id"]
+        assert code["title"]
+        assert code["latestRelease"]
+        assert code["release"]
 
 
 def test_get_code_icd_11(api):
@@ -116,8 +117,8 @@ def test_missing_entities():
                   832593195, 832742988, 841741921, 844739135, 858244402, 862523453, 936674819, 944000127, 964894896,
                   967467614, 990165161, 992936232]
     for entity_id in entity_ids:
-        with pytest.raises(JSONDecodeError):
-            api.get_entity(entity_id)
+        test = api.get_entity(entity_id)
+        assert test is None
 
 
 if __name__ == '__main__':
