@@ -110,14 +110,15 @@ class Api:
         else:
             raise ValueError(f"Api.get_entity -- unexpected Response {r.status_code}")
 
-    def get_ancestors(self, entity_id: int, entities: list = None, depth: int = 0) -> list:
+    def get_ancestors(self, entity_id: int, entities: list = None, depth: int = 0, nested_output: bool = True) -> list:
         """
         get all entities listed under entity.child, recursively
 
         :param entity_id: entity_id to look up - initially the root
         :param entities: list of already-traversed entities (initially empty)
         :param depth: current depth
-        :return: full list of all ancestry under the root, with nested structure
+        :param nested_output: whether to store child nodes in a nested structure, False = flattened
+        :return: full list of all ancestry under the root
         :rtype: list
         """
         if entities is None:
@@ -130,15 +131,17 @@ class Api:
 
         parent_ids = [p.split("/")[-1] for p in entity["parent"]]
         label = entity["title"]["@value"]
-        # print(f"{' '*depth} get_entity: {entity_id} - {label}")
+        print(f"{' '*depth} get_entity: {entity_id} - {label}")
 
         short_entity = {
             "entity_id": entity_id,
             "depth": depth,
             "label": label,
-            "child_entities": [],
             "parent_ids": parent_ids,
         }
+        if nested_output:
+            short_entity["child_entities"] = []
+
         if "synonym" in extra_keys:
             short_entity["synonym"] = entity["synonym"]
         if "exclusion" in extra_keys:
@@ -151,7 +154,16 @@ class Api:
             child_id = child.split("/")[-1]
             existing = next(iter([e for e in entities if e["entity_id"] == child_id]), None)
             if existing is None:
-                self.get_ancestors(entities=short_entity["child_entities"], entity_id=child_id, depth=depth + 1)
+                if nested_output:
+                    self.get_ancestors(entities=short_entity["child_entities"],
+                                       entity_id=child_id,
+                                       depth=depth + 1,
+                                       nested_output=nested_output)
+                else:
+                    self.get_ancestors(entities=entities,
+                                       entity_id=child_id,
+                                       depth=depth + 1,
+                                       nested_output=nested_output)
         return entities
 
     def get_leaf_nodes(self, entity_id: int, entities: list = None) -> list:
@@ -178,7 +190,7 @@ class Api:
                     self.get_leaf_nodes(entities=entities, entity_id=child_id)
         return entities
 
-    def search(self, uri):
+    def search(self, uri) -> dict:
         r = requests.post(uri, headers=self.headers, verify=False)
         results = r.json()
         if results["error"]:
@@ -216,7 +228,7 @@ class Api:
         self.linearization = linearization
         return linearization
 
-    def get_entity_linearization(self, entity_id: int, linearization_name: str = "mms"):
+    def get_entity_linearization(self, entity_id: int, linearization_name: str = "mms") -> list:
         """
         :return: a list of URIs of the entity in the available releases
         :rtype: List
@@ -227,7 +239,7 @@ class Api:
         results = r.json()
         return results
 
-    def get_uri(self, uri: str):
+    def get_uri(self, uri: str) -> list:
         """
         :return: a list of URIs of the entity in the available releases
         :rtype: List
@@ -291,7 +303,7 @@ class Api:
         results = r.json()
         return results
 
-    def lookup(self, foundation_uri):
+    def lookup(self, foundation_uri) -> list:
         """
         This endpoint allows looking up a foundation entity within the mms linearization
         and returns where that entity is coded in this linearization.
