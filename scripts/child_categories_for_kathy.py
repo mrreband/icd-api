@@ -15,6 +15,7 @@ from openpyxl.styles import Font, Color
 from openpyxl.styles.colors import BLUE
 
 from icd_api import Api
+from icd_api.parse_csvs import load_csv
 
 load_dotenv(find_dotenv())
 
@@ -24,6 +25,9 @@ api.set_linearization("mms")
 output_folder = os.path.join(os.path.dirname(__file__), "output")
 target_path = os.path.join(output_folder, "child_categories_for_kathy.xlsx")
 os.makedirs(output_folder, exist_ok=True)
+
+mms_csv_path = os.path.join(os.path.dirname(__file__), "mms_codes.csv")
+mms_codes = load_csv(mms_csv_path)
 
 
 @dataclass
@@ -116,6 +120,11 @@ def get_en_labels(entity: dict, key_name: str):
     return labels
 
 
+def get_mms_code(entity_id):
+    child_code = next(iter(c for c in mms_codes if c["entity_id"] == entity_id), {})
+    return child_code.get("code", "")
+
+
 def get_entity_children(foundation_entity: FoundationEntity,
                         child_uris: list,
                         child_entities: list,
@@ -133,9 +142,10 @@ def get_entity_children(foundation_entity: FoundationEntity,
         child_lookup = api.lookup(foundation_uri=child_uri) or dict()
 
         # leaf-node entities with no code actually show their parent's code in lookup results - clear those out
-        child_code = child_lookup.get("code", "")
-        code_exists = any([child_code == ce.get("code", "") for ce in child_entities])
+        # child_code = child_lookup.get("code", "")
+        # code_exists = any([child_code == ce.get("code", "") for ce in child_entities])
 
+        child_code = get_mms_code(child_id)
         if child_entity is not None and child_lookup is not None:
             child_entity_dict = {
                 "parent_id": foundation_entity.entity_id,
@@ -144,7 +154,8 @@ def get_entity_children(foundation_entity: FoundationEntity,
                 "entity_id": child_id,
                 "uri": child_entity["@id"],
                 "title": child_entity["title"]["@value"],
-                "code": child_code if not code_exists else "",
+                "code": child_code,
+                # "code": child_code if not code_exists else "",
                 "synonyms": get_en_labels(child_entity, "synonym"),
                 "exclusions": get_en_labels(child_entity, "exclusion"),
             }
