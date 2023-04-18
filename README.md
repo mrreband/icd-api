@@ -18,7 +18,7 @@ api = Api()
 - use the api class to make requests: 
   - request a specific entity: 
   ```python
-  api.get_entity(entity_id=455013390)
+  api.get_entity(entity_id="455013390")
   ```
   - search for entities: 
   ```python
