@@ -96,7 +96,7 @@ class Entity:
                     for value in exclusions]
 
         def process_fcr(exclusions) -> List[Dict[str, str]]:
-            """extract the label and foundation reference"""
+            """extract the label, foundation reference, linearization reference - both refs have the same entity id"""
             return [{"label": value["label"]["@value"],
                      "foundationReference": value.get("foundationReference", None),
                      "linearizationReference": value.get("linearizationReference", None)}
