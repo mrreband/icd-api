@@ -4,7 +4,7 @@ from collections import defaultdict
 from dotenv import load_dotenv, find_dotenv
 
 from icd_api import Api
-from icd_api.util import write_json
+from util import write_json, load_json
 
 load_dotenv(find_dotenv())
 
@@ -34,8 +34,9 @@ def get_children_with_multiple_parents(entities: list, results: list):
     """
     for entity in entities:
         if entity["parent_count"] > 0:
+            children = entity.pop("child_entities") or []
             results.append(entity)
-            return get_children_with_multiple_parents(entities=entity.get("child_entities", []), results=results)
+            return get_children_with_multiple_parents(entities=children, results=results)
 
     filtered_output_path = os.path.join(output_folder, "children_with_multiple_parents.json")
     write_json(data=results, file_path=filtered_output_path)
@@ -52,6 +53,10 @@ def load_root_entity():
 
 
 def get_counts(entities, parents):
+    entities_path = os.path.join(output_folder, "all_entities.json")
+    if os.path.exists(entities_path):
+        return load_json(entities_path)
+
     for entity in entities:
         entity["child_count"] = len(entity.get("child_entities", []))
         entity["parent_count"] = parents.get(str(entity["entity_id"]), 0)
@@ -70,8 +75,8 @@ def get_leaf_nodes():
 
 
 if __name__ == '__main__':
-    # data = load_root_entity()
-    # get_counts(entities=data["entities"], parents=data["parents"])
-    # get_children_with_multiple_parents(entities=data["entities"], results=[])
+    data = load_root_entity()
+    get_counts(entities=data["entities"], parents=data["parents"])
+    get_children_with_multiple_parents(entities=data["entities"], results=[])
     # print(data)
     get_leaf_nodes()
