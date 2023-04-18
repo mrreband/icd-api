@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Entity:
+    request_uri: str
     entity_id: str
     entity_label: str
     parent_ids: list
@@ -15,6 +16,8 @@ class Entity:
     synonyms: list = None
     exclusions: list = None
     index_terms: list = None
+    related_entities_in_perinatal_chapter: list = None
+    foundation_child_elsewhere: list = None
     other: dict = None
 
     @property
@@ -38,26 +41,28 @@ class Entity:
         return len(self.parent_ids)
 
     @classmethod
-    def from_api(cls, response_data: dict, mms_data: dict = None):
+    def from_api(cls, response_data: dict, request_uri: str = "entity", mms_data: dict = None):
+        def process_labels(values):
+            return [value["label"]["@value"] for value in values]
+        def process_exclusions(exclusions):
+            return [{"label": value["label"]["@value"], "foundationReference": value["foundationReference"]}
+                    for value in exclusions]
+
         parent_ids = [p.split("/")[-1] for p in response_data["parent"]]
         child_uris = response_data.get("child", [])
         child_ids = [uri.split("/")[-1] for uri in child_uris]
         entity = Entity(
+            request_uri=request_uri,
             entity_id=response_data["@id"].split("/")[-1],
             entity_label=response_data["title"]["@value"],
             parent_ids=parent_ids,
             child_ids=child_ids,
+            related_entities_in_perinatal_chapter=response_data.get("relatedEntitiesInPerinatalChapter", []),
+            foundation_child_elsewhere=response_data.get("foundationChildElsewhere", []),
+            synonyms=process_labels(response_data.get("synonym", [])),
+            exclusions=process_exclusions(response_data.get("exclusion", [])),
+            index_terms=process_labels(response_data.get("indexTerm", []))
         )
-
-        if "synonym" in response_data.keys():
-            values = response_data["synonym"]
-            values = [value["label"]["@value"] for value in values]
-            cls.synonyms = values
-        if "exclusion" in response_data.keys():
-            values = response_data["exclusion"]
-            values = [{"label": value["label"]["@value"], "foundationReference": value["foundationReference"]}
-                      for value in values]
-            cls.exclusions = values
 
         # mms data doesn't exist in the response for entity getter,
         # but the user can provide it, populate these fields too
@@ -70,3 +75,9 @@ class Entity:
 
     def __repr__(self):
         return f"Entity {self.entity_id} - {self.entity_label}"
+
+    @property
+    def request_type(self):
+        if "/lookup?" in self.request_uri:
+            return "lookup"
+        return "entity"
