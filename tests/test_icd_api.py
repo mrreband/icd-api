@@ -42,6 +42,14 @@ def test_get_entity(api):
         print(child)
 
 
+def test_get_entity_full(api):
+    entity = api.get_entity_full(2008663041)
+    assert entity
+
+    for child in entity.indirect_children_ids:
+        print(child)
+
+
 def test_search_entities(api):
     search_results = api.search_entities(search_string="diabetes")
     assert search_results

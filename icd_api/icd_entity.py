@@ -54,7 +54,11 @@ class Entity:
         in the foundation taxonomy, there is a parent-child relationship,
         but these are not direct children in the linearization
         """
-        return [uri.split("/")[-1] for uri in self.foundation_child_elsewhere]
+        # use foundationReference as a default key, fall back on linearizationReference --
+        # both should be there, and both should have the same trailing entity_id
+        uris = [uri.get("foundationReference", uri["linearizationReference"])
+                for uri in self.foundation_child_elsewhere]
+        return [uri.split("/")[-1] for uri in uris]
 
     @property
     def direct_children_ids(self) -> List[str]:

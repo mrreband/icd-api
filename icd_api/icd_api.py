@@ -130,7 +130,7 @@ class Api:
         if entity_obj is None:
             return lookup_obj
 
-        full_data = {**lookup_obj.lookup_data, **entity_obj.entity_data}
+        full_data = {**entity_obj.entity_data, **lookup_obj.lookup_data, "entity_id": entity_id}
 
         # some attributes can be found in results of both self.get_entity and self.lookup
         keys = ["inclusions", "exclusions", "foundation_child_elsewhere", "related_entities_in_perinatal_chapter"]
