@@ -49,9 +49,24 @@ class Entity:
         return len(self.child_ids)
 
     @property
+    def indirect_children_ids(self) -> List[str]:
+        """
+        in the foundation taxonomy, there is a parent-child relationship,
+        but these are not direct children in the linearization
+        """
+        return [uri.split("/")[-1] for uri in self.foundation_child_elsewhere]
+
+    @property
+    def direct_children_ids(self) -> List[str]:
+        """
+        direct children in both the taxonomy and in linearization
+        """
+        return [child_id for child_id in self.child_ids if child_id not in self.indirect_children_ids]
+
+    @property
     def direct_child_count(self) -> int:
         """number of children that define this entity as their parent in the linearization"""
-        return len(self.child_ids) - len(self.foundation_child_elsewhere)
+        return len(self.direct_children_ids)
 
     @property
     def node_color(self) -> str:
