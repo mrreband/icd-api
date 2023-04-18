@@ -157,11 +157,6 @@ class Api:
         full_obj.request_uris = [entity_obj.request_uri, lookup_obj.request_uri]
         full_obj.request_uri = None
 
-        # if full_obj.related_entities_in_perinatal_chapter:
-        #     print(f"full_obj.related_entities_in_perinatal_chapter = {full_obj.related_entities_in_perinatal_chapter}")
-        # if full_obj.foundation_child_elsewhere:
-        #     print(f"full_obj.foundation_child_elsewhere = {full_obj.foundation_child_elsewhere}")
-
         return full_obj
 
     def get_ancestors(self, entity_id: int, entities: list = None, depth: int = 0, nested_output: bool = True) -> list:
