@@ -106,7 +106,7 @@ class Api:
         r = requests.get(uri, headers=self.headers, verify=False)
         if r.status_code == 200:
             results = r.json()
-            return Entity.from_api(results)
+            return Entity.from_api(results, request_uri=uri)
         elif r.status_code == 404:
             return None
         else:
@@ -303,8 +303,9 @@ class Api:
         uri = f"{self.base_url}/release/11/{self.release_id}/mms/lookup?foundationUri={quoted_url}"
         r = requests.get(uri, headers=self.headers, verify=False)
         if r.status_code == 200:
-            results = r.json()
-            return results
+            response = r.json()
+            entity = Entity.from_api(response, request_uri=uri)
+            return entity
         elif r.status_code == 404:
             return None
         else:
