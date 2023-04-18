@@ -5,7 +5,7 @@ import pytest as pytest
 from dotenv import load_dotenv, find_dotenv
 from requests import JSONDecodeError
 
-from icd_api import Api
+from icd_api import Api, Entity
 
 load_dotenv(find_dotenv())
 
@@ -80,16 +80,9 @@ def test_get_code_icd_11(api):
 
 def test_lookup(api):
     foundation_uri = "http://id.who.int/icd/entity/1435254666"
-    results = api.lookup(foundation_uri=foundation_uri)
-    assert results["@context"]
-    assert results["@id"]
-    assert results["parent"]
-    assert results["browserUrl"]
-    assert results["code"]
-    assert results["classKind"]
-    assert results["title"]
-    assert results["relatedEntitiesInPerinatalChapter"]
-    assert results["indexTerm"]
+    entity = api.lookup(foundation_uri=foundation_uri)
+    assert isinstance(entity, Entity)
+    assert entity.request_type == "lookup"
 
 
 def test_search_linearization(api):
