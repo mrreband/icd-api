@@ -3,7 +3,6 @@ import os
 
 import pytest as pytest
 from dotenv import load_dotenv, find_dotenv
-from requests import JSONDecodeError
 
 from icd_api import Api, Entity
 
@@ -23,7 +22,7 @@ def test_api(api):
 
 
 def test_get_all_children(api):
-    root_entity_id = 1301318821  # higher up: 1920852714  # lower down: 1301318821
+    root_entity_id = "1301318821"  # higher up: 1920852714  # lower down: 1301318821
     all_entities = api.get_ancestors(root_entity_id)
     parent_folder = os.path.dirname(__file__)
     target_file_path = os.path.join(parent_folder, f"output/{root_entity_id}_children.json")
@@ -35,7 +34,7 @@ def test_get_all_children(api):
 
 
 def test_get_entity(api):
-    entity = api.get_entity(1920852714)
+    entity = api.get_entity("1920852714")
     assert entity
 
     for child in entity.child_ids:
@@ -43,7 +42,7 @@ def test_get_entity(api):
 
 
 def test_get_entity_full(api):
-    entity = api.get_entity_full(2008663041)
+    entity = api.get_entity_full("2008663041")
     assert entity
 
     for child in entity.indirect_children_ids:
