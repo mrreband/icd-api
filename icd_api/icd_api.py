@@ -133,19 +133,21 @@ class Api:
         full_data = {**entity_obj.entity_data, **lookup_obj.lookup_data}
 
         # some attributes can be found in results of both self.get_entity and self.lookup
+        keys = ["inclusions", "exclusions", "foundation_child_elsewhere", "related_entities_in_perinatal_chapter"]
         if not lookup_obj.lookup_id_match:
             # if the lookup results come back with a different entity, don't use that data
-            full_data["inclusions"] = entity_obj.inclusions
-            full_data["exclusions"] = entity_obj.exclusions
+            for key in keys:
+                full_data[key] = getattr(entity_obj, key)
         else:
             # if the lookup is a match and it has attributes that get_entity also has, combine them
-            if entity_obj.inclusions and lookup_obj.inclusions and entity_obj.inclusions != lookup_obj.inclusions:
-                print(f"{entity_id} both objs have inclusions: {entity_obj.inclusions} != {lookup_obj.inclusions}")
-                full_data["inclusions"] = entity_obj.entity_data["inclusions"] + lookup_obj.lookup_data["inclusions"]
-            if entity_obj.exclusions and lookup_obj.exclusions and entity_obj.exclusions != lookup_obj.exclusions:
-                print(f"{entity_id} both objs have exclusions: {entity_obj.exclusions} != {lookup_obj.exclusions}")
-                full_data["exclusions"] = entity_obj.entity_data["exclusions"] + lookup_obj.lookup_data["exclusions"]
+            for key in keys:
+                entity_val = getattr(entity_obj, key)
+                lookup_val = getattr(lookup_obj, key)
+                if entity_val and lookup_val and entity_val != lookup_val:
+                    print(f"{entity_id} both objs have {key}: {entity_val} != {lookup_val}")
+                    full_data[key] = entity_val + lookup_val
 
+        # make sure we're not missing anything
         if lookup_obj.synonyms:
             print(f"{entity_id} lookup_obj has synonyms")
         if entity_obj.index_terms:
@@ -154,6 +156,12 @@ class Api:
         full_obj = Entity(**full_data)
         full_obj.request_uris = [entity_obj.request_uri, lookup_obj.request_uri]
         full_obj.request_uri = None
+
+        # if full_obj.related_entities_in_perinatal_chapter:
+        #     print(f"full_obj.related_entities_in_perinatal_chapter = {full_obj.related_entities_in_perinatal_chapter}")
+        # if full_obj.foundation_child_elsewhere:
+        #     print(f"full_obj.foundation_child_elsewhere = {full_obj.foundation_child_elsewhere}")
+
         return full_obj
 
     def get_ancestors(self, entity_id: int, entities: list = None, depth: int = 0, nested_output: bool = True) -> list:

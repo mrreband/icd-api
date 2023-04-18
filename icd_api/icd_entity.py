@@ -80,6 +80,13 @@ class Entity:
             return [{"label": value["label"]["@value"], "foundationReference": value.get("foundationReference", None)}
                     for value in exclusions]
 
+        def process_fcr(exclusions) -> List[Dict[str, str]]:
+            """extract the label and foundation reference"""
+            return [{"label": value["label"]["@value"],
+                     "foundationReference": value.get("foundationReference", None),
+                     "linearizationReference": value.get("linearizationReference", None)}
+                    for value in exclusions]
+
         parent_ids = [p.split("/")[-1] for p in response_data["parent"]]
         child_uris = response_data.get("child", [])
         child_ids = [uri.split("/")[-1] for uri in child_uris]
@@ -91,7 +98,7 @@ class Entity:
             parent_ids=parent_ids,
             child_ids=child_ids,
             related_entities_in_perinatal_chapter=response_data.get("relatedEntitiesInPerinatalChapter", []),
-            foundation_child_elsewhere=response_data.get("foundationChildElsewhere", []),
+            foundation_child_elsewhere=process_fcr(response_data.get("foundationChildElsewhere", [])),
             synonyms=process_labels(response_data.get("synonym", [])),
             inclusions=process_inclusions(response_data.get("inclusion", [])),
             exclusions=process_inclusions(response_data.get("exclusion", [])),
@@ -111,8 +118,10 @@ class Entity:
 
     def to_json(self):
         results = self.__dict__
-        results.pop("context", None)
-        return dict((key, value) for key, value in results.items() if value)
+        results = dict((key, value) for key, value in results.items() if value is not None and value != [])
+        for key in ["context", "request_uri", "request_uris", "depth"]:
+            results.pop(key, None)
+        return results
 
     @property
     def entity_data(self):
@@ -124,6 +133,8 @@ class Entity:
                     synonyms=self.synonyms,
                     inclusions=self.inclusions,
                     exclusions=self.exclusions,
+                    related_entities_in_perinatal_chapter=self.related_entities_in_perinatal_chapter,
+                    foundation_child_elsewhere=self.foundation_child_elsewhere,
                     request_uri=self.request_uri)
 
     @property
