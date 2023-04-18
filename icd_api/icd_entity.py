@@ -1,50 +1,79 @@
 from dataclasses import dataclass
+from typing import Dict, List
 
 
 @dataclass
 class Entity:
     request_uri: str
+    context: str
     entity_id: str
     entity_label: str
     parent_ids: list
     child_ids: list
+
+    # optional fields
+    synonyms: list = None
+    inclusions: list = None
+    exclusions: list = None
+
+    # optional fields - lookup results only
+    index_terms: list = None
+    related_entities_in_perinatal_chapter: list = None
+    foundation_child_elsewhere: list = None
+
+    # place to store any response data not itemized above
+    known_keys = ["@context", "browserUrl", "@id", "title", "parent", "child", "relatedEntitiesInPerinatalChapter",
+                  "foundationChildElsewhere", "synonym", "exclusion", "indexTerm"]
+    other: dict = None
+
     mms_code: str = None
     mms_parent_id: str = None
     mms_parent_code: str = None
 
-    # other fields
-    synonyms: list = None
-    exclusions: list = None
-    index_terms: list = None
-    related_entities_in_perinatal_chapter: list = None
-    foundation_child_elsewhere: list = None
-    other: dict = None
+    @property
+    def request_type(self):
+        """entities may be created from the response of either Api.get_entity or by Api.lookup"""
+        if "/lookup?" in self.request_uri:
+            return "lookup"
+        return "entity"
 
     @property
-    def node_color(self):
+    def parent_count(self) -> int:
+        return len(self.parent_ids)
+
+    @property
+    def child_count(self) -> int:
+        return len(self.child_ids)
+
+    @property
+    def direct_child_count(self) -> int:
+        """number of children that define this entity as their parent in the linearization"""
+        return len(self.child_ids) - len(self.foundation_child_elsewhere)
+
+    @property
+    def node_color(self) -> str:
         if self.mms_code:
             return "blue"
         return "black"
 
     @property
-    def node_filled(self):
+    def node_filled(self) -> str:
         if len(self.child_ids) > 0:
             return "empty"
         return "filled"
 
     @property
-    def node(self):
+    def node(self) -> str:
         return f"{self.node_filled} {self.node_color} circle"
-
-    @property
-    def parent_count(self):
-        return len(self.parent_ids)
 
     @classmethod
     def from_api(cls, response_data: dict, request_uri: str = "entity", mms_data: dict = None):
-        def process_labels(values):
+        def process_labels(values) -> List[str]:
+            """extract just the text of a label"""
             return [value["label"]["@value"] for value in values]
-        def process_exclusions(exclusions):
+
+        def process_inclusions(exclusions) -> List[Dict[str, str]]:
+            """extract the label and foundation reference"""
             return [{"label": value["label"]["@value"], "foundationReference": value["foundationReference"]}
                     for value in exclusions]
 
@@ -54,15 +83,20 @@ class Entity:
         entity = Entity(
             request_uri=request_uri,
             entity_id=response_data["@id"].split("/")[-1],
+            context=response_data["@context"],
             entity_label=response_data["title"]["@value"],
             parent_ids=parent_ids,
             child_ids=child_ids,
             related_entities_in_perinatal_chapter=response_data.get("relatedEntitiesInPerinatalChapter", []),
             foundation_child_elsewhere=response_data.get("foundationChildElsewhere", []),
             synonyms=process_labels(response_data.get("synonym", [])),
-            exclusions=process_exclusions(response_data.get("exclusion", [])),
+            inclusions=process_inclusions(response_data.get("inclusion", [])),
+            exclusions=process_inclusions(response_data.get("exclusion", [])),
             index_terms=process_labels(response_data.get("indexTerm", []))
         )
+
+        other_data = dict((k, v) for k, v in response_data.items() if k not in cls.known_keys)
+        cls.other = other_data
 
         # mms data doesn't exist in the response for entity getter,
         # but the user can provide it, populate these fields too
@@ -76,8 +110,7 @@ class Entity:
     def __repr__(self):
         return f"Entity {self.entity_id} - {self.entity_label}"
 
-    @property
-    def request_type(self):
-        if "/lookup?" in self.request_uri:
-            return "lookup"
-        return "entity"
+    def to_json(self):
+        results = self.__dict__
+        results.pop("context", None)
+        return dict((key, value) for key, value in results.items() if value)
