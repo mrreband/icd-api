@@ -96,7 +96,7 @@ class Api:
         else:
             return "2023-01"
 
-    def get_entity(self, entity_id: int) -> Entity:
+    def get_entity(self, entity_id: str) -> Entity:
         """
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
@@ -113,7 +113,7 @@ class Api:
         else:
             raise ValueError(f"Api.get_entity -- unexpected Response {r.status_code}")
 
-    def get_entity_full(self, entity_id: int) -> Entity:
+    def get_entity_full(self, entity_id: str) -> Entity:
         """
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
@@ -159,7 +159,7 @@ class Api:
 
         return full_obj
 
-    def get_ancestors(self, entity_id: int, entities: list = None, depth: int = 0, nested_output: bool = True) -> list:
+    def get_ancestors(self, entity_id: str, entities: list = None, depth: int = 0, nested_output: bool = True) -> list:
         """
         get all entities listed under entity.child, recursively
 
@@ -198,7 +198,7 @@ class Api:
                                        nested_output=nested_output)
         return entities
 
-    def get_leaf_nodes(self, entity_id: int, entities: list = None) -> list:
+    def get_leaf_nodes(self, entity_id: str, entities: list = None) -> list:
         """
         get leaf entities, those with no children of their own
 
@@ -368,7 +368,7 @@ class Api:
 if __name__ == "__main__":
     api = Api()
 
-    entity = api.get_entity(455013390)
+    entity = api.get_entity("455013390")
     # for child in entity["child"]:
     #     print(child)
 
