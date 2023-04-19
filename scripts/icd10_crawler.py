@@ -12,12 +12,25 @@ from icd_api import Api
 
 load_dotenv(find_dotenv())
 
+output_folder = os.path.join(os.path.dirname(__file__), "output", "icd10")
+
+
+def folder_exists(folder_path):
+    exists = os.path.exists(folder_path)
+    if exists:
+        print(f"{folder_path} already exists")
+    else:
+        os.makedirs(folder_path)
+    return exists
+
 
 def get_root_codes(api):
+    print(f"get_root_codes")
     root_uri = "release/10/2019"
     root_data = api.get_uri(root_uri)
-    target_folder = f"output/ICD10/depth 01"
-    os.makedirs(target_folder, exist_ok=True)
+    target_folder = os.path.join(output_folder, "depth 01")
+    if folder_exists(target_folder):
+        return
 
     for child in root_data["child"]:
         child_data = api.get_url(child)
@@ -36,7 +49,6 @@ def get_files(root_folder, targets: list):
         root_dir, _, local_files = local_target
         local_file_paths = [os.path.join(root_dir, file) for file in local_files]
         targets.extend(local_file_paths)
-
     return targets
 
 
@@ -48,10 +60,13 @@ def get_next_depth(api: Api, depth: int):
         get_root_codes(api=api)
         return
 
-    root_folder = f"../tests/output/ICD10/depth 0{depth - 1}"
-    output_folder = f"../tests/output/ICD10/depth 0{depth}"
-    os.makedirs(output_folder, exist_ok=True)
-    for file_path in get_files(root_folder, []):
+    print(f"get_next_depth - {depth}")
+    parent_depth_folder = os.path.join(output_folder, f"depth 0{depth - 1}")
+    target_depth_folder = os.path.join(output_folder, f"depth 0{depth}")
+    if folder_exists(target_depth_folder):
+        return
+
+    for file_path in get_files(parent_depth_folder, []):
         with open(file_path, "r", encoding="utf8") as input_file:
             text = input_file.read()
             json_data = json.loads(text)
@@ -60,8 +75,8 @@ def get_next_depth(api: Api, depth: int):
             for root_data in json_data:
                 for child in root_data.get("child", []):
                     child_id = child.split("/")[-1]
-                    target_file_path = f"{output_folder}/{child_id}.json"
-                    test = f"{root_folder}/{child_id}.json"
+                    target_file_path = f"{target_depth_folder}/{child_id}.json"
+                    test = f"{parent_depth_folder}/{child_id}.json"
                     os.makedirs(os.path.dirname(target_file_path), exist_ok=True)
                     if not os.path.exists(target_file_path) and not os.path.exists(test):
                         child_data_items = api.get_url_recurse(child, [])
@@ -70,15 +85,24 @@ def get_next_depth(api: Api, depth: int):
                             output_file.write(json_data)
 
 
+def get_all_icd10_codes():
+    """
+    get all icd 10 codes, starting at the top and building downward
+    """
+    api = Api()
+    for i in range(1, 6):
+        get_next_depth(api, depth=i)
+
+
 def merge_json_files():
     """
     concatenate json files
     """
     for i in range(1, 6):
         depth = f"depth 0{i}"
-        root_folder = f"../tests/output/ICD10/{depth}"
-        print(f"processing {root_folder}")
-        targets = os.walk(root_folder)
+        source_depth_folder = os.path.join(output_folder, str(depth))
+        print(f"processing {source_depth_folder}")
+        targets = os.walk(source_depth_folder)
         codes = {}
         for _, folder_paths, file_names in targets:
             for file_name in file_names:
@@ -92,20 +116,15 @@ def merge_json_files():
                         code_id = code_url.split("/")[-1]
                         codes[code_id] = json_code
 
-        with open(f"../tests/output/icd10 who api - {depth}.json", "w") as output_file:
+        target_json_path = os.path.join(output_folder, f"icd10 who api - depth {depth}.json")
+        with open(target_json_path, "w") as output_file:
             output_data = json.dumps(codes, indent=4)
             output_file.write(output_data)
 
 
 def normalize_json():
     print("normalize_json")
-    file_paths = {
-        1: "../tests/output/icd10 who api - depth 01.json",
-        2: "../tests/output/icd10 who api - depth 02.json",
-        3: "../tests/output/icd10 who api - depth 03.json",
-        4: "../tests/output/icd10 who api - depth 04.json",
-        5: "../tests/output/icd10 who api - depth 05.json",
-    }
+    file_paths = dict((i, os.path.join(output_folder, f"icd10 who api - depth 0{i}.json")) for i in range(1, 6))
     results = []
     for depth, file_path in file_paths.items():
         with open(file_path, "r", encoding="utf8") as file:
@@ -118,14 +137,13 @@ def normalize_json():
                 results.append(f"{parent}|{code}|{depth}|{class_kind}|{description}\n")
 
     results.sort()
-    output_path = "../tests/output/icd10 who api.csv"
-    with open(output_path, "w", encoding="utf8") as output_file:
+    target_csv_path = os.path.join(output_folder, "icd10 who api.csv")
+    with open(target_csv_path, "w", encoding="utf8") as output_file:
         output_file.write("Parent|Code|Depth|ClassKind|Description\n")
         output_file.writelines(results)
 
 
 if __name__ == '__main__':
-    # api = Api()
-    # get_next_depth(api=api, depth=5)
+    get_all_icd10_codes()
     merge_json_files()
     normalize_json()
