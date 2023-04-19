@@ -2,7 +2,6 @@ import time
 import urllib.parse
 from datetime import datetime
 import os
-from typing import Dict
 
 import requests
 from dataclasses import dataclass
@@ -29,26 +28,35 @@ class Api:
         self.throttled = False
 
         if self.use_auth_token:
+            self.cached_token_path = "../.token"
             self.token = self.get_token()
         else:
+            self.cached_token_path = ""
             self.token = ""
+
+    @property
+    def token_is_valid(self) -> bool:
+        """
+        :return: whether a token exists and is younger than the allowed age --
+                 tokens are valid for ~ 1 hr: https://icd.who.int/icdapi/docs2/API-Authentication/
+        :rtype: bool
+        """
+        if os.path.exists(self.cached_token_path):
+            date_created = os.path.getmtime(self.cached_token_path)
+            token_age_seconds = datetime.now().timestamp() - date_created
+            allowed_age_seconds = 60 * 60
+            return token_age_seconds < allowed_age_seconds
+        return False
 
     def get_token(self) -> str:
         """
-        :return: authorization token, valid for up to one hour, may be cached in a local `.token` file
+        :return: authorization token, valid for up to one hour, may be cached in a local file self.cached_token_path
         :rtype: str
         """
-        token_path = "../.token"
-        if os.path.exists(token_path):
-            date_created = os.path.getmtime(token_path)
-            token_age = datetime.now().timestamp() - date_created
-
-            # tokens are valid for ~ 1 hr:
-            # https://icd.who.int/icdapi/docs2/API-Authentication/
-            if token_age < 60 * 60:
-                with open(token_path, "r") as token_file:
-                    token = token_file.read()
-                    return token
+        if self.token_is_valid:
+            with open(self.cached_token_path, "r") as token_file:
+                token = token_file.read()
+                return token
 
         scope = 'icdapi_access'
         grant_type = 'client_credentials'
@@ -62,7 +70,7 @@ class Api:
         r = requests.post(self.token_endpoint, data=payload, verify=False).json()
         token = r['access_token']
 
-        with open(token_path, "w") as token_file:
+        with open(self.cached_token_path, "w") as token_file:
             token_file.write(token)
 
         return token
@@ -291,8 +299,12 @@ class Api:
         results = r.json()
         return results
 
-    def get_url_recurse(self, url: str, items: list, depth: int = 0):
+    def get_icd10_codes(self, url: str, items: list, depth: int = 0):
         """
+        get all icd10 codes recursively, throttled to not overload the servers
+        note: a local deployment of the WHO API does not contain ICD 10 endpoints,
+        so this needs to be run agains the public one
+
         :return: a list of URIs of the entity in the available releases
         :rtype: List
         """
@@ -306,16 +318,22 @@ class Api:
             items.append(results)
             if depth <= max_depth:
                 for child in results.get("child", []):
-                    self.get_url_recurse(url=child, items=items, depth=depth + 1)
+                    self.get_icd10_codes(url=child, items=items, depth=depth + 1)
             return items
         elif r.status_code == 401:
-            print("401 - throttling")
-            if self.throttled:
-                raise ConnectionRefusedError("response 401 twice")
-            # too many requests - wait 10 minutes then try again
+            if self.throttled and self.token_is_valid:
+                # 401 Unauthorized, even after throttling and requesting a new token
+                raise ConnectionRefusedError("got 401 even after throttling and requesting a new token")
+
+            print("401 - waiting 10 minutes")
             self.throttled = True
             time.sleep(600)
-            return self.get_url_recurse(url=url, items=items, depth=depth)
+
+            if not self.token_is_valid:
+                print("401 - requesting new token")
+                self.token = self.get_token()
+
+            return self.get_icd10_codes(url=url, items=items, depth=depth)
         else:
             raise ConnectionError(f"error {r.status_code}", r)
 
@@ -368,9 +386,7 @@ class Api:
 if __name__ == "__main__":
     api = Api()
 
-    entity = api.get_entity("455013390")
-    # for child in entity["child"]:
-    #     print(child)
-
+    root_icd11_entity = api.get_entity("455013390")
+    root_icd10_entity = api.get_uri("release/10/2019")
     search_results = api.search_entities(search_string="diabetes")
     print(search_results)
