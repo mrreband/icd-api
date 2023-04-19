@@ -6,30 +6,28 @@ note: a locally deployed instance of the WHO ICD API does not contain ICD10 endp
 """
 import os
 import json
+from typing import List
+
+import urllib3
 
 from dotenv import load_dotenv, find_dotenv
 from icd_api import Api
 
 load_dotenv(find_dotenv())
-
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 output_folder = os.path.join(os.path.dirname(__file__), "output", "icd10")
 
 
-def folder_exists(folder_path):
-    exists = os.path.exists(folder_path)
-    if exists:
-        print(f"{folder_path} already exists")
-    else:
-        os.makedirs(folder_path)
-    return exists
-
-
 def get_root_codes(api):
+    """
+    Get the root icd 10 code and its children
+    """
     print(f"get_root_codes")
     root_uri = "release/10/2019"
     root_data = api.get_uri(root_uri)
     target_folder = os.path.join(output_folder, "depth 01")
-    if folder_exists(target_folder):
+    if os.path.exists(target_folder):
+        print(f"{target_folder} already exists")
         return
 
     for child in root_data["child"]:
@@ -37,13 +35,18 @@ def get_root_codes(api):
         child_id = child_data["@id"].split("/")[-1]
         target_file_path = f"{target_folder}/{child_id}.json"
         if not os.path.exists(target_file_path):
-            child_data_items = api.get_url_recurse(child, [])
+            child_data_items = api.get_icd10_codes(child, [])
+            os.makedirs(os.path.dirname(target_file_path), exist_ok=True)
             with open(target_file_path, "w") as file:
                 json_data = json.dumps(child_data_items, indent=4)
                 file.write(json_data)
 
 
-def get_files(root_folder, targets: list):
+def get_files(root_folder, targets: list) -> List[str]:
+    """
+    :return: get results of os.walk as a list of file paths
+    :rtype: List[str]
+    """
     local_targets = list(os.walk(root_folder))
     for local_target in local_targets:
         root_dir, _, local_files = local_target
@@ -55,6 +58,7 @@ def get_files(root_folder, targets: list):
 def get_next_depth(api: Api, depth: int):
     """
     traverse existing json files, get all of their children, and write them as separate json files
+    only make requests if the target json file does not exist.
     """
     if depth == 1:
         get_root_codes(api=api)
@@ -63,8 +67,6 @@ def get_next_depth(api: Api, depth: int):
     print(f"get_next_depth - {depth}")
     parent_depth_folder = os.path.join(output_folder, f"depth 0{depth - 1}")
     target_depth_folder = os.path.join(output_folder, f"depth 0{depth}")
-    if folder_exists(target_depth_folder):
-        return
 
     for file_path in get_files(parent_depth_folder, []):
         with open(file_path, "r", encoding="utf8") as input_file:
@@ -79,7 +81,7 @@ def get_next_depth(api: Api, depth: int):
                     test = f"{parent_depth_folder}/{child_id}.json"
                     os.makedirs(os.path.dirname(target_file_path), exist_ok=True)
                     if not os.path.exists(target_file_path) and not os.path.exists(test):
-                        child_data_items = api.get_url_recurse(child, [])
+                        child_data_items = api.get_icd10_codes(child, [])
                         with open(target_file_path, "w") as output_file:
                             json_data = json.dumps(child_data_items, indent=4)
                             output_file.write(json_data)
