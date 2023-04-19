@@ -129,7 +129,7 @@ class Api:
         :rtype: Entity
         """
         entity_obj = self.get_entity(entity_id=entity_id)
-        lookup_obj = self.lookup(foundation_uri=entity_obj.foundation_uri)
+        lookup_obj = self.lookup(foundation_uri=f"http://id.who.int/icd/entity/{entity_id}")
 
         if lookup_obj is None and entity_obj is None:
             return None
