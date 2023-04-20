@@ -90,6 +90,20 @@ def test_search_linearization(api):
     assert results
 
 
+def test_get_residual(api):
+    results = api.get_residual_codes(entity_id="515117475")
+    assert results["Y"]["code"] == "1A09.Y"
+    assert results["Z"]["code"] == "1A09.Z"
+
+    results = api.get_residual_codes(entity_id="78422942")
+    assert results["Y"] is None
+    assert results["Z"]["code"] == "1A11.Z"
+
+    results = api.get_residual_codes(entity_id="1777228366")
+    assert results["Y"]["code"] == "1A36.1Y"
+    assert results["Z"] is None
+
+
 def test_missing_entities():
     """these were missing from the entities output by Api.get_ancestors - check that the api returns 404 for each"""
     api = Api()

@@ -104,6 +104,35 @@ class Api:
         else:
             return "2023-01"
 
+    def get_depth_recurse(self, entity_id: str) -> int:
+        """keep getting parent until you get to the root, report back the depth"""
+        depth = 0
+        entity = self.get_entity(entity_id=entity_id)
+        while entity is not None:
+            parent_id = entity.parent_ids[0]
+            depth += 1
+            entity = self.get_entity(parent_id)
+        return depth - 1
+
+    def get_residual_codes(self, entity_id, linearization_name: str = "mms") -> dict:
+        """
+        get Y-code and Z-code information for the provided entity, if they exist
+        """
+        uris = {
+            "Y": f"{self.base_url}/release/11/{self.release_id}/{linearization_name}/{entity_id}/other",
+            "Z": f"{self.base_url}/release/11/{self.release_id}/{linearization_name}/{entity_id}/unspecified"
+        }
+        results = {"Y": None, "Z": None}
+        for key, uri in uris.items():
+            r = requests.get(uri, headers=self.headers, verify=False)
+            if r.status_code == 200:
+                results[key] = r.json()
+            elif r.status_code == 404:
+                results[key] = None
+            else:
+                raise ValueError(f"Api.get_residual_codes -- unexpected Response {r.status_code}")
+        return results
+
     def get_entity(self, entity_id: str) -> Entity:
         """
         :param entity_id: id of an ICD-11 foundation entity
@@ -148,6 +177,7 @@ class Api:
                 full_data[key] = getattr(entity_obj, key)
         else:
             # if the lookup is a match and it has attributes that get_entity also has, combine them
+            # todo: should we fetch mms codes too?
             for key in keys:
                 entity_val = getattr(entity_obj, key)
                 lookup_val = getattr(lookup_obj, key)
@@ -348,6 +378,8 @@ class Api:
             quoted_code = urllib.parse.quote(code, safe="")
             uri = f"{self.base_url}/release/11/{self.release_id}/mms/codeinfo/{quoted_code}?flexiblemode=true"
         r = requests.get(uri, headers=self.headers, verify=False)
+        if r.status_code == 404:
+            return None
 
         results = r.json()
         return results
