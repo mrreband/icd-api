@@ -4,13 +4,13 @@ from collections import defaultdict
 from dotenv import load_dotenv, find_dotenv
 
 from icd_api import Api
-from util import write_json, load_json
+from icd_api.util import write_json, load_json
 
 load_dotenv(find_dotenv())
 
 icdapi_folder = os.path.dirname(os.path.dirname(__file__))
 output_folder = os.path.join(icdapi_folder, "output")
-root_entity_id = 448895267
+root_entity_id = "448895267"
 
 
 def get_aggregates(file_path: str):

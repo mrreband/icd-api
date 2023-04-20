@@ -118,7 +118,7 @@ def merge_json_files():
                         code_id = code_url.split("/")[-1]
                         codes[code_id] = json_code
 
-        target_json_path = os.path.join(output_folder, f"icd10 who api - depth {depth}.json")
+        target_json_path = os.path.join(output_folder, f"icd10 who api - {depth}.json")
         with open(target_json_path, "w") as output_file:
             output_data = json.dumps(codes, indent=4)
             output_file.write(output_data)
