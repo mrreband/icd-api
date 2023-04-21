@@ -104,6 +104,8 @@ class Api:
         else:
             return "2023-01"
 
+    # todo: add self.make_request for all get requests
+
     def get_depth_recurse(self, entity_id: str) -> int:
         """keep getting parent until you get to the root, report back the depth"""
         depth = 0
@@ -182,8 +184,8 @@ class Api:
                 entity_val = getattr(entity_obj, key)
                 lookup_val = getattr(lookup_obj, key)
                 if entity_val and lookup_val and entity_val != lookup_val:
-                    print(f"{entity_id} both objs have {key}: {entity_val} != {lookup_val}")
-                    full_data[key] = entity_val + lookup_val
+                    # print(f"{entity_id} both objs have {key}: {entity_val} != {lookup_val}")
+                    full_data[key] = dict(entity=entity_val, lookup=lookup_val)
 
         # make sure we're not missing anything
         if lookup_obj.synonyms:

@@ -19,10 +19,17 @@ class Entity:
     exclusions: list = None
 
     # optional fields - lookup results only
+    entity_residual: str = None
     lookup_id_match: bool = None
     index_terms: list = None
     related_entities_in_perinatal_chapter: list = None
     foundation_child_elsewhere: list = None
+
+    mms_code: str = None
+    mms_block: str = None
+    mms_class_kind: str = None
+    mms_depth: str = None
+    # todo: add mms_chapter
 
     # place to store any response data not itemized above
     known_keys = ["@context", "browserUrl", "@id", "title", "parent", "child", "relatedEntitiesInPerinatalChapter",
@@ -41,6 +48,10 @@ class Entity:
         return f"http://id.who.int/icd/entity/{self.entity_id}"
 
     @property
+    def linearization_release_uri(self):
+        return f"http://id.who.int/icd/release/11/beta/mms/{self.entity_id}"
+
+    @property
     def parent_count(self) -> int:
         return len(self.parent_ids)
 
@@ -50,6 +61,18 @@ class Entity:
 
     @property
     def indirect_children_ids(self) -> List[str]:
+        """
+        Some of the foundation_child_elsewhere results are actually children of this entity's parent,
+        eg hypoxia - api.lookup('http://id.who.int/icd/entity/474887737')
+
+        Only return the ids that are children of this entity
+        """
+        # use foundationReference as a default key, fall back on linearizationReference --
+        # both should be there, and both should have the same trailing entity_id
+        return [eid for eid in self.foundation_child_elsewhere_ids if eid in self.child_ids]
+
+    @property
+    def foundation_child_elsewhere_ids(self) -> List[str]:
         """
         in the foundation taxonomy, there is a parent-child relationship,
         but these are not direct children in the linearization
@@ -106,12 +129,19 @@ class Entity:
                      "linearizationReference": value.get("linearizationReference", None)}
                     for value in exclusions]
 
+        entity_id = response_data["@id"].split("/")[-1]
+        entity_residual = None
+        if entity_id in("unspecified", "other"):
+            entity_residual = entity_id
+            entity_id = response_data["@id"].split("/")[-2]
+
         parent_ids = [p.split("/")[-1] for p in response_data["parent"]]
         child_uris = response_data.get("child", [])
         child_ids = [uri.split("/")[-1] for uri in child_uris]
         entity = Entity(
             request_uri=request_uri,
-            entity_id=response_data["@id"].split("/")[-1],
+            entity_id=entity_id,
+            entity_residual=entity_residual,
             context=response_data["@context"],
             entity_label=response_data["title"]["@value"],
             parent_ids=parent_ids,
@@ -125,7 +155,12 @@ class Entity:
         )
 
         if entity.request_type == "lookup":
-            entity.lookup_id_match = entity_id == entity.entity_id
+            lookup_id_match = entity_id == entity.entity_id
+            entity.lookup_id_match = lookup_id_match
+            if lookup_id_match:
+                entity.mms_code = response_data.get("code", "")
+                entity.mms_block = response_data.get("blockId", "")
+                entity.mms_class_kind = response_data.get("classKind", "")
 
         other_data = dict((k, v) for k, v in response_data.items() if k not in cls.known_keys)
         cls.other = other_data
@@ -159,13 +194,16 @@ class Entity:
     @property
     def lookup_data(self):
         return dict(entity_id=self.entity_id,
+                    entity_residual=self.entity_residual,
                     related_entities_in_perinatal_chapter=self.related_entities_in_perinatal_chapter,
                     foundation_child_elsewhere=self.foundation_child_elsewhere,
                     inclusions=self.inclusions,
                     exclusions=self.exclusions,
                     index_terms=self.index_terms,
                     lookup_id_match=self.lookup_id_match,
-                    request_uri=self.request_uri)
+                    request_uri=self.request_uri,
+                    mms_code=self.mms_code,
+                    mms_class_kind=self.mms_class_kind)
 
 
 def combine_entities(entity_obj: Entity, lookup_obj: Entity):
