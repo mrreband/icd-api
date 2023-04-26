@@ -4,14 +4,15 @@ from typing import Dict, List
 
 @dataclass
 class Entity:
-    request_uri: str
-    context: str
     entity_id: str
     entity_label: str
     parent_ids: list
-    child_ids: list
+    request_uri: str = None
+    context: str = None
+    child_ids: list = None
 
     # optional fields - entity results only
+    entity_child_uris: list = None
     synonyms: list = None
 
     # optional fields - may appear in entity or lookup results
@@ -19,6 +20,7 @@ class Entity:
     exclusions: list = None
 
     # optional fields - lookup results only
+    lookup_child_uris: list = None
     entity_residual: str = None
     lookup_id_match: bool = None
     index_terms: list = None
@@ -29,7 +31,15 @@ class Entity:
     mms_block: str = None
     mms_class_kind: str = None
     mms_depth: str = None
-    # todo: add mms_chapter
+    mms_chapter: str = None
+
+    # extra fields for reporting
+    residuals: dict = None  # child Y- and Z- codes if they exist
+    lineage: dict = None    # itemized relationships with parent entities
+    max_code_record: dict = None
+    max_child_code: str = None
+    proposed_code: str = None
+    proposed_code_depth: int = None
 
     # place to store any response data not itemized above
     known_keys = ["@context", "browserUrl", "@id", "title", "parent", "child", "relatedEntitiesInPerinatalChapter",
@@ -138,6 +148,8 @@ class Entity:
         parent_ids = [p.split("/")[-1] for p in response_data["parent"]]
         child_uris = response_data.get("child", [])
         child_ids = [uri.split("/")[-1] for uri in child_uris]
+
+        # todo: child_ids may contain "other" and "unspecified"
         entity = Entity(
             request_uri=request_uri,
             entity_id=entity_id,
@@ -157,10 +169,13 @@ class Entity:
         if entity.request_type == "lookup":
             lookup_id_match = entity_id == entity.entity_id
             entity.lookup_id_match = lookup_id_match
+            entity.lookup_child_uris = child_uris
             if lookup_id_match:
                 entity.mms_code = response_data.get("code", "")
                 entity.mms_block = response_data.get("blockId", "")
                 entity.mms_class_kind = response_data.get("classKind", "")
+        else:
+            entity.entity_child_uris = child_uris
 
         other_data = dict((k, v) for k, v in response_data.items() if k not in cls.known_keys)
         cls.other = other_data
@@ -173,7 +188,7 @@ class Entity:
     def to_json(self):
         results = self.__dict__
         results = dict((key, value) for key, value in results.items() if value is not None and value != [])
-        for key in ["context", "request_uri", "request_uris", "depth"]:
+        for key in ["context", "request_uri", "request_uris"]:
             results.pop(key, None)
         return results
 
@@ -184,6 +199,7 @@ class Entity:
                     context=self.context,
                     parent_ids=self.parent_ids,
                     child_ids=self.child_ids,
+                    entity_child_uris=self.entity_child_uris,
                     synonyms=self.synonyms,
                     inclusions=self.inclusions,
                     exclusions=self.exclusions,
@@ -197,6 +213,7 @@ class Entity:
                     entity_residual=self.entity_residual,
                     related_entities_in_perinatal_chapter=self.related_entities_in_perinatal_chapter,
                     foundation_child_elsewhere=self.foundation_child_elsewhere,
+                    lookup_child_uris=self.lookup_child_uris,
                     inclusions=self.inclusions,
                     exclusions=self.exclusions,
                     index_terms=self.index_terms,

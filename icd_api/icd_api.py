@@ -199,7 +199,11 @@ class Api:
 
         return full_obj
 
-    def get_ancestors(self, entity_id: str, entities: list = None, depth: int = 0, nested_output: bool = True) -> list:
+    def get_ancestors(self,
+                      entity_id: str,
+                      entities: list = None,
+                      depth: int = 0,
+                      nested_output: bool = True) -> list:
         """
         get all entities listed under entity.child, recursively
 
