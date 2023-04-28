@@ -125,11 +125,17 @@ def get_flattened_entity_ids() -> list[dict]:
 
 
 def get_distinct_entity_ids() -> list[str]:
+    eids_path = os.path.join(data_folder, "entity_ids.txt")
+    if os.path.exists(eids_path):
+        with open(eids_path, "r", encoding="utf8") as eids_file:
+            eids = eids_file.readlines()
+            eids = [eid.rstrip("\n") for eid in eids]
+            return eids
+
     entities_dicts = get_flattened_entity_ids()
     entity_ids = [e["entity_id"] for e in entities_dicts]
 
-    target_path = os.path.join(data_folder, "entity_ids.txt")
-    with open(target_path, "w", encoding="utf8") as target_file:
+    with open(eids_path, "w", encoding="utf8") as target_file:
         target_file.writelines([f"{eid}\n" for eid in entity_ids])
 
     return entity_ids
