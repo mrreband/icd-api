@@ -157,13 +157,13 @@ class Api:
         """
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
-        :return: information on the specified ICD-11 foundation entity
+        :return: results of /entity and /lookup and /residual
         :rtype: dict
         """
-        entity_obj = self.get_entity(entity_id=entity_id)
-        lookup_obj = self.lookup(foundation_uri=f"http://id.who.int/icd/entity/{entity_id}")
-        return {"entity": entity_obj, "lookup": lookup_obj}
-
+        icd_entity = self.get_entity(entity_id=entity_id)
+        icd_entity.residuals = self.get_residual_codes(entity_id=entity_id)
+        icd_lookup = self.lookup(foundation_uri=f"http://id.who.int/icd/entity/{entity_id}")
+        return {"entity": icd_entity, "lookup": icd_lookup}
 
     def get_ancestors(self,
                       entity_id: str,
@@ -373,7 +373,7 @@ class Api:
         r = requests.get(uri, headers=self.headers, verify=False)
         if r.status_code == 200:
             response_data = r.json()
-            entity = ICDLookup.from_api(foundation_uri=foundation_uri, response_data=response_data)
+            entity = ICDLookup.from_api(request_foundation_uri=foundation_uri, response_data=response_data)
             return entity
         elif r.status_code == 404:
             return None

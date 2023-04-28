@@ -28,6 +28,7 @@ class ICDEntity:
 
     # custom attributes
     entity_residual: str = None  # if the uri ends with unspecified or other, store that here
+    residuals: dict = None  # results of icd_api.get_residuals go here
 
     # place to store any response data not itemized above
     other: dict = None
@@ -67,6 +68,21 @@ class ICDEntity:
     @property
     def child_count(self) -> int:
         return len(self.child_ids)
+
+    @property
+    def residual(self) -> str:
+        test = get_entity_id(self.foundation_uri)
+        if test in ("other", "unspecified"):
+            return test
+        return None
+
+    @property
+    def is_residual(self):
+        return bool(self.residual)
+
+    @property
+    def is_leaf(self):
+        return len(self.child_uris) == 0
 
     @classmethod
     def from_api(cls, entity_id: str, response_data: dict):

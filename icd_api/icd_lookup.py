@@ -9,11 +9,19 @@ lookup_known_keys = [
     "descendant", "foundationChildElsewhere", "indexTerm", "inclusion", "exclusion", "postcoordinationScale",
 ]
 
+# Todo: should we store code/block/chapter as separate attributes?
+#       the api response structure only stores the immediate code,
+#       so there's no easy way to see the block to which a code belongs --
+#       maybe that's fine - maybe that should come from a separate mms_record object
+
 
 @dataclass
 class ICDLookup:
     entity_id: str
-    foundation_uri: str
+    # this is the requested uri, provided as a param when instantiated
+    request_foundation_uri: str
+    # this is the response uri, provided from the api.  it may not always match foundaion_uri
+    response_foundation_uri: str
     title: str
     definition: str = None
     long_definition: str = None
@@ -51,7 +59,7 @@ class ICDLookup:
 
     @property
     def lookup_entity_id(self) -> str:
-        return self.foundation_uri.split("/")[-1]
+        return get_entity_id(self.response_foundation_uri)
 
     @property
     def linearization_release_uri(self) -> str:
@@ -71,7 +79,7 @@ class ICDLookup:
 
     @property
     def child_uris(self) -> list[str]:
-        return self.child
+        return self.child or []
 
     @property
     def child_ids(self) -> list[str]:
@@ -81,8 +89,27 @@ class ICDLookup:
     def child_count(self) -> int:
         return len(self.child_ids)
 
+    @property
+    def residual(self) -> str:
+        test = get_entity_id(self.request_foundation_uri)
+        if test in ("other", "unspecified"):
+            return test
+        return None
+
+    @property
+    def is_residual(self):
+        return bool(self.residual)
+
+    @property
+    def is_leaf(self):
+        return len(self.child_uris) == 0
+
+    @property
+    def lookup_id_match(self):
+        return self.lookup_entity_id == self.entity_id
+
     @classmethod
-    def from_api(cls, foundation_uri: str, response_data: dict):
+    def from_api(cls, request_foundation_uri: str, response_data: dict):
         """
         If the foundation entity is included in the linearization and has a code
         then that linearization entity is returned.
@@ -92,11 +119,12 @@ class ICDLookup:
         If the entity is not included in the linearization
         then the system checks where that entity is aggregated to and then returns that entity.
         """
-        entity_id = get_entity_id(uri=foundation_uri)
+        request_entity_id = get_entity_id(uri=request_foundation_uri)
         params, other = get_params_dicts(response_data, lookup_known_keys)
-        obj = cls(**params, other=other, entity_id=entity_id, foundation_uri=foundation_uri)
+        params["request_foundation_uri"] = request_foundation_uri
+        params["response_foundation_uri"] = response_data.get("foundationUri", "")
+        obj = cls(**params, other=other, entity_id=request_entity_id)
 
-        obj.lookup_id_match = obj.lookup_entity_id == obj.entity_id
         # todo: is this needed?  the purpose is to shield a user from relying on attributes that aren't really for the entity they requested
         if obj.lookup_id_match:
             obj.code = response_data.get("code", "")
@@ -162,3 +190,9 @@ class ICDLookup:
     def node(self) -> str:
         return f"{self.node_filled} {self.node_color} circle"
 
+    def to_json(self):
+        results = self.__dict__
+        # results = dict((key, value) for key, value in results.items() if value is not None and value != [])
+        # for key in ["context", "request_uri", "request_uris"]:
+        #     results.pop(key, None)
+        return results
