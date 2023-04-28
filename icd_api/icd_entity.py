@@ -20,6 +20,7 @@ class Entity:
     exclusions: list = None
 
     # optional fields - lookup results only
+    lookup_parent_uris: list = None
     lookup_child_uris: list = None
     entity_residual: str = None
     lookup_id_match: bool = None
@@ -27,6 +28,7 @@ class Entity:
     related_entities_in_perinatal_chapter: list = None
     foundation_child_elsewhere: list = None
 
+    depth: int = None
     mms_code: str = None
     mms_block: str = None
     mms_class_kind: str = None
@@ -145,7 +147,8 @@ class Entity:
             entity_residual = entity_id
             entity_id = response_data["@id"].split("/")[-2]
 
-        parent_ids = [p.split("/")[-1] for p in response_data["parent"]]
+        parent_uris = response_data["parent"]
+        parent_ids = [p.split("/")[-1] for p in parent_uris]
         child_uris = response_data.get("child", [])
         child_ids = [uri.split("/")[-1] for uri in child_uris]
 
@@ -170,6 +173,7 @@ class Entity:
             lookup_id_match = entity_id == entity.entity_id
             entity.lookup_id_match = lookup_id_match
             entity.lookup_child_uris = child_uris
+            entity.lookup_parent_uris = parent_uris
             if lookup_id_match:
                 entity.mms_code = response_data.get("code", "")
                 entity.mms_block = response_data.get("blockId", "")
@@ -183,7 +187,10 @@ class Entity:
         return entity
 
     def __repr__(self):
-        return f"Entity {self.entity_id} - {self.entity_label}"
+        response = f"Entity {self.entity_id} - {self.entity_label}"
+        if self.mms_code:
+            response += f" (mms {self.mms_class_kind} {self.mms_code})"
+        return response
 
     def to_json(self):
         results = self.__dict__
@@ -214,10 +221,11 @@ class Entity:
                     related_entities_in_perinatal_chapter=self.related_entities_in_perinatal_chapter,
                     foundation_child_elsewhere=self.foundation_child_elsewhere,
                     lookup_child_uris=self.lookup_child_uris,
+                    lookup_parent_uris=self.lookup_parent_uris,
+                    lookup_id_match=self.lookup_id_match,
                     inclusions=self.inclusions,
                     exclusions=self.exclusions,
                     index_terms=self.index_terms,
-                    lookup_id_match=self.lookup_id_match,
                     request_uri=self.request_uri,
                     mms_code=self.mms_code,
                     mms_class_kind=self.mms_class_kind)
