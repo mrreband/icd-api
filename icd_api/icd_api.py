@@ -6,7 +6,8 @@ import os
 import requests
 from dataclasses import dataclass
 
-from icd_api.icd_entity import Entity
+from icd_api.icd_entity import ICDEntity
+from icd_api.icd_lookup import ICDLookup
 
 
 @dataclass
@@ -135,69 +136,34 @@ class Api:
                 raise ValueError(f"Api.get_residual_codes -- unexpected Response {r.status_code}")
         return results
 
-    def get_entity(self, entity_id: str) -> Entity:
+    def get_entity(self, entity_id: str) -> ICDEntity:
         """
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
         :return: information on the specified ICD-11 foundation entity
-        :rtype: Entity
+        :rtype: ICDEntity
         """
         uri = f"{self.base_url}/entity/{entity_id}"
         r = requests.get(uri, headers=self.headers, verify=False)
         if r.status_code == 200:
             response_data = r.json()
-            return Entity.from_api(entity_id=str(entity_id), response_data=response_data, request_uri=uri)
+            return ICDEntity.from_api(entity_id=str(entity_id), response_data=response_data)
         elif r.status_code == 404:
             return None
         else:
             raise ValueError(f"Api.get_entity -- unexpected Response {r.status_code}")
 
-    def get_entity_full(self, entity_id: str) -> Entity:
+    def get_entity_full(self, entity_id: str) -> dict:
         """
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
         :return: information on the specified ICD-11 foundation entity
-        :rtype: Entity
+        :rtype: dict
         """
         entity_obj = self.get_entity(entity_id=entity_id)
         lookup_obj = self.lookup(foundation_uri=f"http://id.who.int/icd/entity/{entity_id}")
+        return {"entity": entity_obj, "lookup": lookup_obj}
 
-        if lookup_obj is None and entity_obj is None:
-            return None
-        if lookup_obj is None:
-            return entity_obj
-        if entity_obj is None:
-            return lookup_obj
-
-        full_data = {**entity_obj.entity_data, **lookup_obj.lookup_data, "entity_id": entity_id}
-
-        # some attributes can be found in results of both self.get_entity and self.lookup
-        keys = ["inclusions", "exclusions", "foundation_child_elsewhere", "related_entities_in_perinatal_chapter"]
-        if not lookup_obj.lookup_id_match:
-            # if the lookup results come back with a different entity, don't use that data
-            for key in keys:
-                full_data[key] = getattr(entity_obj, key)
-        else:
-            # if the lookup is a match and it has attributes that get_entity also has, combine them
-            # todo: should we fetch mms codes too?
-            for key in keys:
-                entity_val = getattr(entity_obj, key)
-                lookup_val = getattr(lookup_obj, key)
-                if entity_val and lookup_val and entity_val != lookup_val:
-                    # print(f"{entity_id} both objs have {key}: {entity_val} != {lookup_val}")
-                    full_data[key] = dict(entity=entity_val, lookup=lookup_val)
-
-        # make sure we're not missing anything
-        if lookup_obj.synonyms:
-            print(f"{entity_id} lookup_obj has synonyms")
-        if entity_obj.index_terms:
-            print(f"{entity_id} entity_obj has index_terms")
-
-        full_obj = Entity(**full_data)
-        full_obj.request_uris = [entity_obj.request_uri, lookup_obj.request_uri]
-        full_obj.request_uri = None
-
-        return full_obj
 
     def get_ancestors(self,
                       entity_id: str,
@@ -390,7 +356,7 @@ class Api:
         results = r.json()
         return results
 
-    def lookup(self, foundation_uri) -> Entity:
+    def lookup(self, foundation_uri) -> ICDLookup:
         """
         This endpoint allows looking up a foundation entity within the mms linearization
         and returns where that entity is coded in this linearization.
@@ -402,13 +368,12 @@ class Api:
         If the entity is not included in the linearization then the system checks where that entity
         is aggregated to and then returns that entity.
         """
-        foundation_id = foundation_uri.split("/")[-1]
         quoted_url = urllib.parse.quote(foundation_uri, safe='')
         uri = f"{self.base_url}/release/11/{self.release_id}/mms/lookup?foundationUri={quoted_url}"
         r = requests.get(uri, headers=self.headers, verify=False)
         if r.status_code == 200:
             response_data = r.json()
-            entity = Entity.from_api(entity_id=foundation_id, response_data=response_data, request_uri=uri)
+            entity = ICDLookup.from_api(foundation_uri=foundation_uri, response_data=response_data)
             return entity
         elif r.status_code == 404:
             return None
