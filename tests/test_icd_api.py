@@ -36,8 +36,8 @@ def test_get_entity(api):
 
 def test_get_entity_full(api):
     entity = api.get_entity_full("2008663041")
-    assert entity["entity"]
-    assert entity["lookup"]
+    assert entity.entity_id
+    assert entity.lookup
 
 
 def test_search_entities(api):
