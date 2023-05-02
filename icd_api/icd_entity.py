@@ -29,6 +29,8 @@ class ICDEntity:
     # custom attributes
     entity_residual: str = None  # if the uri ends with unspecified or other, store that here
     residuals: dict = None  # results of icd_api.get_residuals go here
+    lookup: dict = None  # results of icd_api.lookup go here
+    depth: int = None  # how many parents
 
     # place to store any response data not itemized above
     other: dict = None

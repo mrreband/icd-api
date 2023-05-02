@@ -6,6 +6,7 @@ import os
 import requests
 from dataclasses import dataclass
 
+from icd_api.icd_util import get_foundation_uri
 from icd_api.icd_entity import ICDEntity
 from icd_api.icd_lookup import ICDLookup
 
@@ -153,7 +154,7 @@ class Api:
         else:
             raise ValueError(f"Api.get_entity -- unexpected Response {r.status_code}")
 
-    def get_entity_full(self, entity_id: str) -> dict:
+    def get_entity_full(self, entity_id: str) -> ICDEntity:
         """
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
@@ -162,8 +163,9 @@ class Api:
         """
         icd_entity = self.get_entity(entity_id=entity_id)
         icd_entity.residuals = self.get_residual_codes(entity_id=entity_id)
-        icd_lookup = self.lookup(foundation_uri=f"http://id.who.int/icd/entity/{entity_id}")
-        return {"entity": icd_entity, "lookup": icd_lookup}
+        foundation_uri = get_foundation_uri(entity_id)
+        icd_entity.lookup = self.lookup(foundation_uri=foundation_uri)
+        return icd_entity
 
     def get_ancestors(self,
                       entity_id: str,
@@ -373,7 +375,7 @@ class Api:
         r = requests.get(uri, headers=self.headers, verify=False)
         if r.status_code == 200:
             response_data = r.json()
-            entity = ICDLookup.from_api(request_foundation_uri=foundation_uri, response_data=response_data)
+            entity = ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
             return entity
         elif r.status_code == 404:
             return None
