@@ -41,6 +41,6 @@ def load_csv(file_path: str) -> list:
     return entities
 
 
-def write_json(data, file_path):
+def write_json(data, file_path, indent: int or None = 4):
     with open(file_path, "w", encoding="utf8") as file:
-        file.write(json.dumps(data, indent=4))
+        file.write(json.dumps(data, indent=indent))
