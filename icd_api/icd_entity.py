@@ -72,7 +72,7 @@ class ICDEntity:
         return len(self.child_ids)
 
     @property
-    def residual(self) -> str:
+    def residual(self) -> str or None:
         test = get_entity_id(self.foundation_uri)
         if test in ("other", "unspecified"):
             return test
