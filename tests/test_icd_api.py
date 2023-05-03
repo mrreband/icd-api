@@ -3,7 +3,7 @@ import os
 import pytest as pytest
 from dotenv import load_dotenv, find_dotenv
 
-from icd_api import Api, Entity
+from icd_api import Api, ICDEntity, ICDLookup
 
 load_dotenv(find_dotenv())
 
@@ -36,10 +36,8 @@ def test_get_entity(api):
 
 def test_get_entity_full(api):
     entity = api.get_entity_full("2008663041")
-    assert entity
-
-    for child in entity.indirect_children_ids:
-        print(child)
+    assert entity.entity_id
+    assert entity.lookup
 
 
 def test_search_entities(api):
@@ -81,7 +79,7 @@ def test_get_code_icd_11(api):
 def test_lookup(api):
     foundation_uri = "http://id.who.int/icd/entity/1435254666"
     entity = api.lookup(foundation_uri=foundation_uri)
-    assert isinstance(entity, Entity)
+    assert isinstance(entity, ICDLookup)
     assert entity.request_type == "lookup"
 
 

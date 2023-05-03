@@ -14,11 +14,18 @@ def load_json(file_path: str) -> dict:
         return json_data
 
 
-def write_csv(data: list, file_path: str):
-    columns = list(data[0].keys())
-    output = [",".join(columns) + "\n"]
+def get_all_keys(data: list[dict]):
+    keys = list(set(key for item_dict in data for key in list(item_dict.keys())))
+    return keys
+
+
+def write_csv(data: list, file_path: str, columns: list = None):
+    if columns is None:
+        columns = get_all_keys(data=data)
+
+    output = ['"' + '","'.join(columns) + '"\n']
     for item in data:
-        row = ",".join([str(item.get(col, "")) for col in columns]) + "\n"
+        row = '"' + '","'.join([str(item.get(col, "")) for col in columns]) + '"\n'
         output.append(row)
     with open(file_path, "w", encoding="utf8") as output_file:
         output_file.writelines(output)
@@ -41,6 +48,6 @@ def load_csv(file_path: str) -> list:
     return entities
 
 
-def write_json(data, file_path):
+def write_json(data, file_path, indent: int or None = 4):
     with open(file_path, "w", encoding="utf8") as file:
-        file.write(json.dumps(data, indent=4))
+        file.write(json.dumps(data, indent=indent))
