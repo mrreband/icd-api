@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import List
 
 from icd_api.icd_util import get_mms_uri, get_entity_id, get_params_dicts
 
@@ -9,10 +9,9 @@ lookup_known_keys = [
     "descendant", "foundationChildElsewhere", "indexTerm", "inclusion", "exclusion", "postcoordinationScale",
 ]
 
-# Todo: should we store code/block/chapter as separate attributes?
-#       the api response structure only stores the immediate code,
-#       so there's no easy way to see the block to which a code belongs --
-#       maybe that's fine - maybe that should come from a separate mms_record object
+# todo: add a language attribute, then make props to expose str-versions of any labels that are buried in dicts
+#       these can be str: title, definition, long_definition, fully_specified_name
+#       these can be simpler lists: index_term, inclusion, exclusion
 
 
 @dataclass
@@ -47,7 +46,7 @@ class ICDLookup:
     other: dict = None
 
     def __repr__(self):
-        response = f"Lookup {self.request_id} - "
+        response = f"Lookup {self.request_id} ({self.response_type}) - "
         if self.lookup_id_match:
             response += f" {self.title}"
         else:
@@ -123,6 +122,22 @@ class ICDLookup:
     def lookup_id_match(self):
         return self.request_id == self.response_id
 
+    @property
+    def response_type(self):
+        # If the foundation entity is included in the linearization and has a code
+        # then that linearization entity is returned.
+        if self.lookup_id_match:
+            return "in_linearization"
+
+        # If the foundation entity in included in the linearization but it is a grouping without a code
+        # then the system will return the unspecified residual category under that grouping.
+        if self.code and self.code.upper().endswith("Z"):
+            return "linearization_grouping"
+
+        # If the entity is not included in the linearization
+        # then the system checks where that entity is aggregated to and then returns that entity.
+        return "not_in_linearization"
+
     @classmethod
     def from_api(cls, request_uri: str, response_data: dict):
         """
@@ -134,7 +149,7 @@ class ICDLookup:
         If the entity is not included in the linearization
         then the system checks where that entity is aggregated to and then returns that entity.
         """
-        params, other = get_params_dicts(response_data, lookup_known_keys)
+        params, other = get_params_dicts(response_data=response_data, known_keys=lookup_known_keys)
         params["response_id_uri"] = response_data.get("@id", "")
         obj = cls(**params, other=other, request_uri=request_uri)
         return obj
@@ -191,13 +206,18 @@ class ICDLookup:
     def node(self) -> str:
         return f"{self.node_filled} {self.node_color} circle"
 
-    def to_json(self):
+    def to_json(self, include_props: list = None, exclude_attrs: list = None):
         results = self.__dict__
         results = dict((key, value) for key, value in results.items() if value is not None and value != [])
-        for key in ["context", "request_uri", "request_uris"]:
+
+        if exclude_attrs is None:
+            exclude_attrs = []
+        for key in exclude_attrs:
             results.pop(key, None)
 
-        results["request_id"] = self.request_id
-        results["response_id"] = self.response_id
-        results["lookup_id_match"] = self.lookup_id_match
+        if include_props is None:
+            include_props = []
+        for include_prop in include_props:
+            results[include_prop] = getattr(self, include_prop)
+
         return results
