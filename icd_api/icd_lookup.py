@@ -34,7 +34,7 @@ class ICDLookup:
     parent: list = None
     child: list = None
     ancestor: list = None
-    descendent: list = None
+    descendant: list = None
     foundation_child_elsewhere: list = None
     index_term: list = None
     inclusion: list = None
@@ -62,7 +62,10 @@ class ICDLookup:
 
     @property
     def response_id(self):
-        return get_entity_id(self.response_id_uri)
+        candidate_id = get_entity_id(self.response_id_uri)
+        if candidate_id not in ('other', 'unspecified'):
+            return candidate_id
+        return "/".join(self.response_id_uri.split("/")[-2:])
 
     @property
     def entity_id(self):
@@ -88,6 +91,12 @@ class ICDLookup:
         return [get_entity_id(uri=uri) for uri in self.parent_uris]
 
     @property
+    def parent_id(self):
+        if len(self.parent) > 1:
+            raise ValueError(f"more than one parent")
+        return self.parent_ids[0]
+
+    @property
     def parent_count(self) -> int:
         return len(self.parent_ids)
 
@@ -105,7 +114,7 @@ class ICDLookup:
 
     @property
     def residual(self) -> str:
-        test = get_entity_id(self.request_uri)
+        test = get_entity_id(self.response_id_uri)
         if test in ("other", "unspecified"):
             return test
         return None
@@ -124,6 +133,9 @@ class ICDLookup:
 
     @property
     def response_type(self):
+        """
+        One of three distinct response types when calling the /lookup endpoint
+        """
         # If the foundation entity is included in the linearization and has a code
         # then that linearization entity is returned.
         if self.lookup_id_match:
@@ -141,13 +153,7 @@ class ICDLookup:
     @classmethod
     def from_api(cls, request_uri: str, response_data: dict):
         """
-        If the foundation entity is included in the linearization and has a code
-        then that linearization entity is returned.
-        If the foundation entity in included in the linearization but it is a grouping without a code
-        then the system will return the unspecified residual category under that grouping.
-
-        If the entity is not included in the linearization
-        then the system checks where that entity is aggregated to and then returns that entity.
+        Use the json response data from a lookup call to instantiate and return an ICDLookup object
         """
         params, other = get_params_dicts(response_data=response_data, known_keys=lookup_known_keys)
         params["response_id_uri"] = response_data.get("@id", "")
@@ -189,6 +195,14 @@ class ICDLookup:
     def direct_child_count(self) -> int:
         """number of children that define this entity as their parent in the linearization"""
         return len(self.direct_children_ids)
+
+    @property
+    def descendant_ids(self):
+        return [get_entity_id(uri) for uri in self.descendant or []]
+
+    @property
+    def ancestor_ids(self):
+        return [get_entity_id(uri) for uri in self.ancestor or []]
 
     @property
     def node_color(self) -> str:
