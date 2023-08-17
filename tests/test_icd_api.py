@@ -76,7 +76,7 @@ def test_set_linearization(api):
 
 def test_get_entity_linearization(api):
     linearization_name = "mms"
-    linearization = api.get_entity_linearization(entity_id=1630407678, linearization_name=linearization_name)
+    linearization = api.get_entity_linearization_releases(entity_id=1630407678, linearization_name=linearization_name)
     assert linearization
 
 
