@@ -88,6 +88,9 @@ class ICDEntity:
 
     @classmethod
     def from_api(cls, entity_id: str, response_data: dict):
+        if response_data is None:
+            return None
+
         uri = response_data["@id"]
         uri_entity_id = response_data["@id"]
         response_data["entity_id"] = get_entity_id(uri=uri)

@@ -155,6 +155,8 @@ class ICDLookup:
         """
         Use the json response data from a lookup call to instantiate and return an ICDLookup object
         """
+        if response_data is None:
+            return None
         params, other = get_params_dicts(response_data=response_data, known_keys=lookup_known_keys)
         params["response_id_uri"] = response_data.get("@id", "")
         obj = cls(**params, other=other, request_uri=request_uri)

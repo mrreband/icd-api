@@ -107,7 +107,18 @@ class Api:
         else:
             return "2023-01"
 
-    # todo: add self.make_request for all get requests
+    def get_request(self, uri):
+        """
+        helper method for making get requests
+        """
+        r = requests.get(uri, headers=self.headers, verify=False)
+        if r.status_code == 200:
+            response_data = r.json()
+            return response_data
+        elif r.status_code == 404:
+            return None
+        else:
+            raise ValueError(f"Api.get_entity -- unexpected Response {r.status_code}")
 
     def get_depth_recurse(self, entity_id: str) -> int:
         """keep getting parent until you get to the root, report back the depth"""
@@ -148,14 +159,8 @@ class Api:
         :rtype: ICDEntity
         """
         uri = f"{self.base_url}/entity/{entity_id}"
-        r = requests.get(uri, headers=self.headers, verify=False)
-        if r.status_code == 200:
-            response_data = r.json()
-            return ICDEntity.from_api(entity_id=str(entity_id), response_data=response_data)
-        elif r.status_code == 404:
-            return None
-        else:
-            raise ValueError(f"Api.get_entity -- unexpected Response {r.status_code}")
+        response_data = self.get_request(uri=uri)
+        return ICDEntity.from_api(entity_id=str(entity_id), response_data=response_data)
 
     def get_linearization_entity(self,
                                  entity_id: str,
@@ -178,15 +183,9 @@ class Api:
             if include.lower() not in ["ancestor", "descendant"]:
                 raise ValueError(f"Unexpected include value '{include}' (expected 'ancestor' or 'descendant')")
             uri += f"?include={include.lower()}"
-        r = requests.get(uri, headers=self.headers, verify=False)
-        if r.status_code == 200:
-            response_data = r.json()
-            foundation_uri = get_foundation_uri(entity_id=entity_id)
-            return ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
-        elif r.status_code == 404:
-            return None
-        else:
-            raise ValueError(f"Api.get_entity -- unexpected Response {r.status_code}")
+        response_data = self.get_request(uri=uri)
+        foundation_uri = get_foundation_uri(entity_id=entity_id)
+        return ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
 
     def get_linearization_descendent_ids(self, entity_id: str, linearization_name: str) -> list or None:
         """
@@ -304,6 +303,9 @@ class Api:
         return entities
 
     def search(self, uri) -> dict:
+        """
+        get the response from a post request to ~/entity/search?q={search_string}
+        """
         r = requests.post(uri, headers=self.headers, verify=False)
         results = r.json()
         if results["error"]:
@@ -312,8 +314,7 @@ class Api:
 
     def search_entities(self, search_string: str) -> list:
         """
-        :param search_string:
-        :return:
+        search all foundation entities for the provided search string
         """
         uri = f"{self.base_url}/entity/search?q={search_string}"
         results = self.search(uri=uri)
@@ -341,9 +342,11 @@ class Api:
         self.linearization = linearization
         return linearization
 
-    def get_entity_linearization(self, entity_id: int, linearization_name: str = "mms") -> list:
+    def get_entity_linearization_releases(self, entity_id: int, linearization_name: str = "mms") -> list:
         """
-        :return: a list of URIs of the entity in the available releases
+        get the response from ~/icd/release/11/{linearization_name}/{entity_id}
+
+        :return: a list of URIs to the entity in the releases for which the entity is available
         :rtype: List
         """
         uri = f"{self.base_url}/release/11/{linearization_name}/{entity_id}"
@@ -421,12 +424,8 @@ class Api:
         else:
             quoted_code = urllib.parse.quote(code, safe="")
             uri = f"{self.base_url}/release/11/{self.release_id}/mms/codeinfo/{quoted_code}?flexiblemode=true"
-        r = requests.get(uri, headers=self.headers, verify=False)
-        if r.status_code == 404:
-            return None
-
-        results = r.json()
-        return results
+        response_data = self.get_request(uri=uri)
+        return response_data
 
     def lookup(self, foundation_uri) -> ICDLookup:
         """
@@ -442,17 +441,14 @@ class Api:
         """
         quoted_url = urllib.parse.quote(foundation_uri, safe='')
         uri = f"{self.base_url}/release/11/{self.release_id}/mms/lookup?foundationUri={quoted_url}"
-        r = requests.get(uri, headers=self.headers, verify=False)
-        if r.status_code == 200:
-            response_data = r.json()
-            entity = ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
-            return entity
-        elif r.status_code == 404:
-            return None
-        else:
-            raise ValueError(f"Api.lookup -- unexpected Response {r.status_code}")
+        response_data = self.get_request(uri=uri)
+        entity = ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
+        return entity
 
     def search_linearization(self, search_string: str):
+        """
+        get the response from ~/icd/release/11/2023-01/{linearization_name}/{search_string}
+        """
         uri = f"{self.base_url}/release/11/{self.release_id}/mms/search?q={search_string}"
         results = self.search(uri=uri)
         return results["destinationEntities"]
