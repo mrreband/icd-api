@@ -2,6 +2,7 @@ import time
 import urllib.parse
 from datetime import datetime
 import os
+from typing import Union
 
 import requests
 from dataclasses import dataclass
@@ -137,8 +138,10 @@ class Api:
                 raise ValueError(f"Api.get_residual_codes -- unexpected Response {r.status_code}")
         return results
 
-    def get_entity(self, entity_id: str) -> ICDEntity:
+    def get_entity(self, entity_id: str) -> Union[ICDEntity, None]:
         """
+        get the response from ~/icd/entity/{entity_id}
+
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
         :return: information on the specified ICD-11 foundation entity
@@ -157,9 +160,9 @@ class Api:
     def get_linearization_entity(self,
                                  entity_id: str,
                                  linearization_name: str,
-                                 include: str = None) -> ICDLookup or None:
+                                 include: str = None) -> Union[ICDLookup, None]:
         """
-        get the response from ~/icd/release/11/2023-01/mms/1376721186
+        get the response from ~/icd/release/11/2023-01/{linearization_name}/{entity_id}
 
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
@@ -187,6 +190,8 @@ class Api:
 
     def get_linearization_descendent_ids(self, entity_id: str, linearization_name: str) -> list or None:
         """
+        get all descendents of the provided entity, in the context of the provided linearization
+
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
         :param linearization_name: id of an ICD-11 linearization (eg mms)
@@ -199,6 +204,24 @@ class Api:
                                             include="descendant")
         if obj:
             return obj.descendant_ids
+        return None
+
+    def get_linearization_ancestor_ids(self, entity_id: str, linearization_name: str) -> list or None:
+        """
+        get all ancestors of the provided entity, in the context of the provided linearization
+
+        :param entity_id: id of an ICD-11 foundation entity
+        :type entity_id: int
+        :param linearization_name: id of an ICD-11 linearization (eg mms)
+        :type linearization_name: str
+        :return: list of descendant entity_ids
+        :rtype: list
+        """
+        obj = self.get_linearization_entity(entity_id=entity_id,
+                                            linearization_name=linearization_name,
+                                            include="ancestor")
+        if obj:
+            return obj.ancestor_ids
         return None
 
     def get_entity_full(self, entity_id: str) -> ICDEntity:
