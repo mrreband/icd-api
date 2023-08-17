@@ -171,7 +171,7 @@ class ICDLookup:
         # use foundationReference as a default key, fall back on linearizationReference --
         # both should be there, and both should have the same trailing entity_id
         uris = [uri.get("foundationReference", uri["linearizationReference"])
-                for uri in self.foundation_child_elsewhere]
+                for uri in self.foundation_child_elsewhere or []]
         return [uri.split("/")[-1] for uri in uris]
 
     @property
