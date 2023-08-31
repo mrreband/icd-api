@@ -3,7 +3,7 @@ import os
 import pytest as pytest
 from dotenv import load_dotenv, find_dotenv
 
-from icd_api import Api, ICDEntity, ICDLookup
+from icd_api import Api, ICDEntity, ICDLookup, get_entity_id
 
 load_dotenv(find_dotenv())
 
@@ -34,6 +34,28 @@ def test_get_entity(api):
         print(child)
 
 
+def test_get_linearization_entity(api):
+    entity = api.get_linearization_entity(entity_id="1376721186", linearization_name="mms")
+    assert entity
+    assert "136616595" not in entity.child_ids
+
+
+def test_get_linearization_descendants(api):
+    descendants = api.get_linearization_descendent_ids(entity_id="1376721186", linearization_name="mms")
+    assert descendants
+
+
+def test_get_linearization_ancestors(api):
+    ancestors = api.get_linearization_ancestor_ids(entity_id="1376721186", linearization_name="mms")
+    assert ancestors
+
+
+def test_get_foundation_child_elsewhere(api):
+    linearization_entity = api.get_linearization_entity(entity_id="1376721186", linearization_name="mms")
+    assert linearization_entity
+    assert "136616595" in linearization_entity.foundation_child_elsewhere_ids
+
+
 def test_get_entity_full(api):
     entity = api.get_entity_full("2008663041")
     assert entity.entity_id
@@ -54,7 +76,7 @@ def test_set_linearization(api):
 
 def test_get_entity_linearization(api):
     linearization_name = "mms"
-    linearization = api.get_entity_linearization(entity_id=1630407678, linearization_name=linearization_name)
+    linearization = api.get_entity_linearization_releases(entity_id=1630407678, linearization_name=linearization_name)
     assert linearization
 
 
@@ -81,6 +103,14 @@ def test_lookup(api):
     entity = api.lookup(foundation_uri=foundation_uri)
     assert isinstance(entity, ICDLookup)
     assert entity.request_type == "lookup"
+
+
+def test_lookup_residual(api):
+    foundation_uri = "http://id.who.int/icd/entity/1008196289"
+    entity = api.lookup(foundation_uri=foundation_uri)
+    assert isinstance(entity, ICDLookup)
+    assert entity.is_residual
+    assert entity.residual == "unspecified"
 
 
 def test_search_linearization(api):
