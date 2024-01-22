@@ -23,6 +23,7 @@ class Linearisation:
 
 class Api:
     def __init__(self):
+        self.session = requests.Session()
         self.token_endpoint = os.environ.get("TOKEN_ENDPOINT")
         self.client_id = os.environ.get("CLIENT_ID")
         self.client_secret = os.environ.get("CLIENT_SECRET")
@@ -111,7 +112,7 @@ class Api:
         """
         helper method for making get requests
         """
-        r = requests.get(uri, headers=self.headers, verify=False)
+        r = self.session.get(uri, headers=self.headers, verify=False)
         if r.status_code == 200:
             response_data = r.json()
             return response_data
