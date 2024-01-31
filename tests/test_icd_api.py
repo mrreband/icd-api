@@ -3,12 +3,12 @@ import os
 import pytest as pytest
 from dotenv import load_dotenv, find_dotenv
 
-from icd_api import Api, ICDEntity, ICDLookup, get_entity_id
+from icd_api import Api, ICDLookup
 
 load_dotenv(find_dotenv())
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def api():
     _api = Api()
     _api.set_linearization("mms")
@@ -132,10 +132,8 @@ def test_get_residual(api):
     assert results["Z"] is None
 
 
-def test_missing_entities():
+def test_missing_entities(api):
     """these were missing from the entities output by Api.get_ancestors - check that the api returns 404 for each"""
-    api = Api()
-    api.set_linearization("mms")
     entity_ids = [1000664379, 1029251439, 1059449428, 1076215290, 1076641430, 1104895717, 1110925902, 1117344084,
                   1130046240, 1147241349, 1219708494, 1233380430, 1249767098, 1252104698, 1252530838, 1274104313,
                   1278087668, 1295619984, 1314209579, 1324098793, 1329167995, 1367002461, 137053351, 1377008485,
