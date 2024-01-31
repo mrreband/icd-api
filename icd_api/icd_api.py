@@ -7,7 +7,7 @@ from typing import Union
 import requests
 from dataclasses import dataclass
 
-from icd_api.icd_util import get_foundation_uri, get_entity_id
+from icd_api.icd_util import get_foundation_uri
 from icd_api.icd_entity import ICDEntity
 from icd_api.icd_lookup import ICDLookup
 
@@ -23,11 +23,13 @@ class Linearisation:
 
 class Api:
     def __init__(self):
+        self.base_url = os.environ.get("BASE_URL")
         self.session = requests.Session()
+        self.check_connection()
+
         self.token_endpoint = os.environ.get("TOKEN_ENDPOINT")
         self.client_id = os.environ.get("CLIENT_ID")
         self.client_secret = os.environ.get("CLIENT_SECRET")
-        self.base_url = os.environ.get("BASE_URL")
         self.linearization = None
         self.throttled = False
 
@@ -37,6 +39,16 @@ class Api:
         else:
             self.cached_token_path = ""
             self.token = ""
+
+    def check_connection(self):
+        """
+        Check if the server is available - if it is not, raise an error with a helpful message
+        """
+        swagger_endpoint = f"{self.base_url.rstrip('/icd')}/swagger/index.html"
+        try:
+            self.session.get(swagger_endpoint)
+        except requests.exceptions.ConnectionError:
+            raise ConnectionError(f"Cannot connect to BASE_URL {self.base_url}") from None
 
     @property
     def token_is_valid(self) -> bool:
