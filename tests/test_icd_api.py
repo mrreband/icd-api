@@ -11,7 +11,7 @@ load_dotenv(find_dotenv())
 @pytest.fixture(scope="session")
 def api():
     _api = Api()
-    _api.set_linearization("mms")
+    _api.set_linearization("mms", release_id="2023-01")
     return _api
 
 
