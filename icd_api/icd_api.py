@@ -196,7 +196,7 @@ class Api:
                                  linearization_name: str,
                                  include: str = None) -> Union[ICDLookup, None]:
         """
-        get the response from ~/icd/release/11/2023-01/{linearization_name}/{entity_id}
+        get the response from ~/icd/release/11/{release_id}/{linearization_name}/{entity_id}
 
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
@@ -357,6 +357,9 @@ class Api:
         uri = f"{self.base_url}/release/11/{linearization_name}"
         all_releases = self.get_request(uri=uri)
 
+        # Note: the endpoint responds with http urls of all releases which feed into other properties -
+        #       this local `linearization_base_url` definition safeguards against self.base_url values that are https
+        linearization_base_url = self.base_url.replace("https://", "http://")
         linearization = Linearisation(
             context=all_releases["@context"],
             oid=all_releases["@id"],
@@ -364,7 +367,7 @@ class Api:
             latest_release_uri=all_releases["latestRelease"],
             current_release_uri=all_releases["latestRelease"],
             releases=all_releases["release"],
-            base_url=self.base_url.replace("https://", "http://"),
+            base_url=linearization_base_url,
         )
 
         if release_id:
@@ -482,7 +485,7 @@ class Api:
 
     def search_linearization(self, search_string: str):
         """
-        get the response from ~/icd/release/11/2023-01/{linearization_name}/{search_string}
+        get the response from ~/icd/release/11/{release_id}/{linearization_name}/{search_string}
         """
         uri = f"{self.base_url}/release/11/{self.current_release_id}/mms/search?q={search_string}"
         results = self.search(uri=uri)
