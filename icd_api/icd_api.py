@@ -14,11 +14,11 @@ from icd_api.icd_lookup import ICDLookup
 
 @dataclass
 class Linearisation:
-    context: str            # url to context
-    oid: str                # url to linearization
-    title: dict             # language (str) and value (str)
-    latest_release: str     # url to latest release
-    releases: list          # list of urls to prior releases
+    context: str             # url to context
+    oid: str                 # url to linearization
+    title: dict              # language (str) and value (str)
+    latest_release_uri: str  # url to latest release
+    releases: list           # list of urls to prior releases
 
 
 class Api:
@@ -30,7 +30,7 @@ class Api:
         self.token_endpoint = os.environ.get("TOKEN_ENDPOINT")
         self.client_id = os.environ.get("CLIENT_ID")
         self.client_secret = os.environ.get("CLIENT_SECRET")
-        self.linearization = None
+        self.linearization = None  # type: Linearisation or None
         self.throttled = False
 
         if self.use_auth_token:
@@ -114,9 +114,9 @@ class Api:
         return headers
 
     @property
-    def release_id(self):
+    def latest_release_id(self):
         if self.linearization:
-            return self.linearization.latest_release.split("/")[-2]
+            return self.linearization.latest_release_uri.split("/")[-2]
         else:
             return "2023-01"
 
@@ -148,8 +148,8 @@ class Api:
         get Y-code and Z-code information for the provided entity, if they exist
         """
         uris = {
-            "Y": f"{self.base_url}/release/11/{self.release_id}/{linearization_name}/{entity_id}/other",
-            "Z": f"{self.base_url}/release/11/{self.release_id}/{linearization_name}/{entity_id}/unspecified"
+            "Y": f"{self.base_url}/release/11/{self.latest_release_id}/{linearization_name}/{entity_id}/other",
+            "Z": f"{self.base_url}/release/11/{self.latest_release_id}/{linearization_name}/{entity_id}/unspecified"
         }
         results = {"Y": None, "Z": None}
         for key, uri in uris.items():
@@ -172,6 +172,9 @@ class Api:
         :rtype: ICDEntity
         """
         uri = f"{self.base_url}/entity/{entity_id}"
+        if self.linearization and self.linearization.latest_release_uri:
+            uri += f"?releaseId={self.linearization.latest_release_uri}"
+
         response_data = self.get_request(uri=uri)
         return ICDEntity.from_api(entity_id=str(entity_id), response_data=response_data)
 
@@ -191,7 +194,7 @@ class Api:
         :return: linearization-specific information on the specified ICD-11 entity
         :rtype: ICDLookup
         """
-        uri = f"{self.base_url}/release/11/{self.release_id}/{linearization_name}/{entity_id}"
+        uri = f"{self.base_url}/release/11/{self.latest_release_id}/{linearization_name}/{entity_id}"
         if include:
             if include.lower() not in ["ancestor", "descendant"]:
                 raise ValueError(f"Unexpected include value '{include}' (expected 'ancestor' or 'descendant')")
@@ -349,7 +352,7 @@ class Api:
             context=results["@context"],
             oid=results["@id"],
             title=results["title"],
-            latest_release=results["latestRelease"],
+            latest_release_uri=results["latestRelease"],
             releases=results["release"],
         )
         self.linearization = linearization
@@ -436,7 +439,7 @@ class Api:
             uri = f"{self.base_url}/release/10/{code}"
         else:
             quoted_code = urllib.parse.quote(code, safe="")
-            uri = f"{self.base_url}/release/11/{self.release_id}/mms/codeinfo/{quoted_code}?flexiblemode=true"
+            uri = f"{self.base_url}/release/11/{self.latest_release_id}/mms/codeinfo/{quoted_code}?flexiblemode=true"
         response_data = self.get_request(uri=uri)
         return response_data
 
@@ -453,7 +456,7 @@ class Api:
         is aggregated to and then returns that entity.
         """
         quoted_url = urllib.parse.quote(foundation_uri, safe='')
-        uri = f"{self.base_url}/release/11/{self.release_id}/mms/lookup?foundationUri={quoted_url}"
+        uri = f"{self.base_url}/release/11/{self.latest_release_id}/mms/lookup?foundationUri={quoted_url}"
         response_data = self.get_request(uri=uri)
         entity = ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
         return entity
@@ -462,7 +465,7 @@ class Api:
         """
         get the response from ~/icd/release/11/2023-01/{linearization_name}/{search_string}
         """
-        uri = f"{self.base_url}/release/11/{self.release_id}/mms/search?q={search_string}"
+        uri = f"{self.base_url}/release/11/{self.latest_release_id}/mms/search?q={search_string}"
         results = self.search(uri=uri)
         return results["destinationEntities"]
 
