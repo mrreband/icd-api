@@ -207,6 +207,15 @@ class ICDLookup:
         return [get_entity_id(uri) for uri in self.ancestor or []]
 
     @property
+    def index_term_uris(self):
+        foundation_refs = [it for it in self.index_term if "foundationReference" in it.keys()]
+        return [fr["foundationReference"] for fr in foundation_refs]
+
+    @property
+    def index_term_ids(self):
+        return [get_entity_id(uri) for uri in self.index_term_uris]
+
+    @property
     def node_color(self) -> str:
         if self.code:
             return "blue"
