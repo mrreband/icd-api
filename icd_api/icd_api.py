@@ -23,8 +23,9 @@ class Linearisation:
     releases: list              # list of urls to prior releases
     base_url: str
 
-    def uri_to_id(self, uri: str):
-        return uri.removeprefix(f"{self.base_url}/release/11/").removesuffix("/mms")
+    @staticmethod
+    def uri_to_id(uri: str):
+        return uri.split("/")[-2]
 
     @property
     def release_ids(self):
