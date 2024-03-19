@@ -3,21 +3,29 @@ import os
 import pytest as pytest
 from dotenv import load_dotenv, find_dotenv
 
-from icd_api import Api, ICDEntity, ICDLookup, get_entity_id
+from icd_api import Api, ICDLookup
 
 load_dotenv(find_dotenv())
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def api():
     _api = Api()
-    _api.set_linearization("mms")
+    _api.set_linearization("mms", release_id="2023-01")
     return _api
 
 
 def test_api(api):
-    api.set_linearization("mms")
     assert api
+    assert api.current_release_id == "2023-01"
+
+
+def test_set_linearization():
+    # create a separate Api object so as to not contaminate the fixture
+    test = Api()
+    linearization = test.set_linearization("mms")
+    assert linearization
+    assert test.current_release_id == "2024-01"
 
 
 def test_get_all_children(api):
@@ -65,13 +73,6 @@ def test_get_entity_full(api):
 def test_search_entities(api):
     search_results = api.search_entities(search_string="diabetes")
     assert search_results
-
-
-def test_set_linearization(api):
-    # are there any valid linearizations besides 'mms'?
-    linearization_name = "mms"
-    linearization = api.set_linearization(linearization_name=linearization_name)
-    assert linearization
 
 
 def test_get_entity_linearization(api):
@@ -132,10 +133,8 @@ def test_get_residual(api):
     assert results["Z"] is None
 
 
-def test_missing_entities():
+def test_missing_entities(api):
     """these were missing from the entities output by Api.get_ancestors - check that the api returns 404 for each"""
-    api = Api()
-    api.set_linearization("mms")
     entity_ids = [1000664379, 1029251439, 1059449428, 1076215290, 1076641430, 1104895717, 1110925902, 1117344084,
                   1130046240, 1147241349, 1219708494, 1233380430, 1249767098, 1252104698, 1252530838, 1274104313,
                   1278087668, 1295619984, 1314209579, 1324098793, 1329167995, 1367002461, 137053351, 1377008485,
