@@ -16,8 +16,16 @@ def api():
 
 
 def test_api(api):
-    api.set_linearization("mms")
     assert api
+    assert api.current_release_id == "2023-01"
+
+
+def test_set_linearization():
+    # create a separate Api object so as to not contaminate the fixture
+    test = Api()
+    linearization = test.set_linearization("mms")
+    assert linearization
+    assert test.current_release_id == "2024-01"
 
 
 def test_get_all_children(api):
@@ -65,13 +73,6 @@ def test_get_entity_full(api):
 def test_search_entities(api):
     search_results = api.search_entities(search_string="diabetes")
     assert search_results
-
-
-def test_set_linearization(api):
-    # are there any valid linearizations besides 'mms'?
-    linearization_name = "mms"
-    linearization = api.set_linearization(linearization_name=linearization_name)
-    assert linearization
 
 
 def test_get_entity_linearization(api):
