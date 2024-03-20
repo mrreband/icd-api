@@ -1,11 +1,12 @@
-import time
-import urllib.parse
+from dataclasses import dataclass
 from datetime import datetime
 import os
+import time
 from typing import Union
+import urllib.parse
 
 import requests
-from dataclasses import dataclass
+import requests_cache
 
 from icd_api.icd_util import get_foundation_uri
 from icd_api.icd_entity import ICDEntity
@@ -22,8 +23,9 @@ class Linearisation:
     releases: list              # list of urls to prior releases
     base_url: str
 
-    def uri_to_id(self, uri: str):
-        return uri.removeprefix(f"{self.base_url}/release/11/").removesuffix("/mms")
+    @staticmethod
+    def uri_to_id(uri: str):
+        return uri.split("/")[-2]
 
     @property
     def release_ids(self):
@@ -37,13 +39,13 @@ class Linearisation:
 class Api:
     def __init__(self):
         self.base_url = os.environ.get("BASE_URL")
-        self.session = requests.Session()
+        self.session = self.get_session()
         self.check_connection()
 
         self.token_endpoint = os.environ.get("TOKEN_ENDPOINT")
         self.client_id = os.environ.get("CLIENT_ID")
         self.client_secret = os.environ.get("CLIENT_SECRET")
-        self.linearization = None  # type: Linearisation or None
+        self.linearization = None  # type: Union[Linearisation, None]
         self.throttled = False
 
         if self.use_auth_token:
@@ -52,6 +54,14 @@ class Api:
         else:
             self.cached_token_path = ""
             self.token = ""
+
+    @staticmethod
+    def get_session():
+        requests_cache_file = os.getenv("REQUESTS_CACHE_FILE")
+        if requests_cache_file:
+            return requests_cache.CachedSession(requests_cache_file)
+        else:
+            return requests.session()
 
     def check_connection(self):
         """
@@ -62,6 +72,10 @@ class Api:
             self.session.get(swagger_endpoint)
         except requests.exceptions.ConnectionError:
             raise ConnectionError(f"Cannot connect to BASE_URL {self.base_url}") from None
+
+    @property
+    def use_cache(self):
+        return isinstance(self.session, requests_cache.CachedSession)
 
     @property
     def token_is_valid(self) -> bool:

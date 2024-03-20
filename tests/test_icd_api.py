@@ -155,5 +155,22 @@ def test_missing_entities(api):
         assert test is None
 
 
+def test_cache_nocache():
+    # api with no cache
+    os.environ["REQUESTS_CACHE_FILE"] = ""
+    api = Api()
+    assert api.use_cache is False
+
+    # api with cache
+    os.environ["REQUESTS_CACHE_FILE"] = "sure why not"
+    api = Api()
+    assert api.use_cache is True
+
+    # cleanup (del bc it has a lock on the sqlite file)
+    del api
+    if os.path.exists("sure why not.sqlite"):
+        os.remove("sure why not.sqlite")
+
+
 if __name__ == '__main__':
     pytest.main(["test_icd_api.py"])
