@@ -96,6 +96,9 @@ class Api:
         :return: authorization token, valid for up to one hour, may be cached in a local file self.cached_token_path
         :rtype: str
         """
+        if self.token_endpoint is None:
+            raise ValueError("No token endpoint provided")
+
         if self.token_is_valid:
             with open(self.cached_token_path, "r") as token_file:
                 token = token_file.read()
@@ -203,6 +206,9 @@ class Api:
             uri += f"?releaseId={self.current_release_id}"
 
         response_data = self.get_request(uri=uri)
+        if response_data is None:
+            return None
+
         return ICDEntity.from_api(entity_id=str(entity_id), response_data=response_data)
 
     def get_linearization_entity(self,
@@ -226,7 +232,11 @@ class Api:
             if include.lower() not in ["ancestor", "descendant"]:
                 raise ValueError(f"Unexpected include value '{include}' (expected 'ancestor' or 'descendant')")
             uri += f"?include={include.lower()}"
+
         response_data = self.get_request(uri=uri)
+        if response_data is None:
+            return None
+
         foundation_uri = get_foundation_uri(entity_id=entity_id)
         return ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
 
@@ -479,7 +489,7 @@ class Api:
         response_data = self.get_request(uri=uri)
         return response_data
 
-    def lookup(self, foundation_uri) -> ICDLookup:
+    def lookup(self, foundation_uri) -> Union[ICDLookup, None]:
         """
         This endpoint allows looking up a foundation entity within the mms linearization
         and returns where that entity is coded in this linearization.
@@ -493,7 +503,11 @@ class Api:
         """
         quoted_url = urllib.parse.quote(foundation_uri, safe='')
         uri = f"{self.base_url}/release/11/{self.current_release_id}/mms/lookup?foundationUri={quoted_url}"
+
         response_data = self.get_request(uri=uri)
+        if response_data is None:
+            return None
+
         entity = ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
         return entity
 
