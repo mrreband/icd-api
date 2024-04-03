@@ -56,7 +56,7 @@ class Api:
             self.token = ""
 
     @staticmethod
-    def get_session():
+    def get_session() -> requests.Session:
         requests_cache_file = os.getenv("REQUESTS_CACHE_FILE")
         if requests_cache_file:
             return requests_cache.CachedSession(requests_cache_file)
@@ -74,7 +74,7 @@ class Api:
             raise ConnectionError(f"Cannot connect to BASE_URL {self.base_url}") from None
 
     @property
-    def use_cache(self):
+    def use_cache(self) -> bool:
         return isinstance(self.session, requests_cache.CachedSession)
 
     @property
@@ -141,13 +141,13 @@ class Api:
         return headers
 
     @property
-    def current_release_id(self):
+    def current_release_id(self) -> str:
         if self.linearization:
             return self.linearization.current_release_id
         else:
             return "2023-01"
 
-    def get_request(self, uri):
+    def get_request(self, uri) -> Union[dict, None]:
         """
         helper method for making get requests
         """
@@ -158,7 +158,7 @@ class Api:
         elif r.status_code == 404:
             return None
         else:
-            raise ValueError(f"Api.get_entity -- unexpected Response {r.status_code}")
+            raise ValueError(f"Api.get_request -- unexpected response {r.status_code}")
 
     def get_depth_recurse(self, entity_id: str) -> int:
         """keep getting parent until you get to the root, report back the depth"""
@@ -230,7 +230,7 @@ class Api:
         foundation_uri = get_foundation_uri(entity_id=entity_id)
         return ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
 
-    def get_linearization_descendent_ids(self, entity_id: str, linearization_name: str) -> list or None:
+    def get_linearization_descendent_ids(self, entity_id: str, linearization_name: str) -> Union[list, None]:
         """
         get all descendents of the provided entity, in the context of the provided linearization
 
@@ -248,7 +248,7 @@ class Api:
             return obj.descendant_ids
         return None
 
-    def get_linearization_ancestor_ids(self, entity_id: str, linearization_name: str) -> list or None:
+    def get_linearization_ancestor_ids(self, entity_id: str, linearization_name: str) -> Union[list, None]:
         """
         get all ancestors of the provided entity, in the context of the provided linearization
 
@@ -418,7 +418,7 @@ class Api:
         results = r.json()
         return results
 
-    def get_url(self, url: str):
+    def get_url(self, url: str) -> list:
         """
         :return: a list of URIs of the entity in the available releases
         :rtype: List
@@ -428,7 +428,7 @@ class Api:
         results = r.json()
         return results
 
-    def get_icd10_codes(self, url: str, items: list, depth: int = 0):
+    def get_icd10_codes(self, url: str, items: list, depth: int = 0) -> list:
         """
         get all icd10 codes recursively, throttled to not overload the servers
         note: a local deployment of the WHO API does not contain ICD 10 endpoints,
@@ -466,7 +466,7 @@ class Api:
         else:
             raise ConnectionError(f"error {r.status_code}", r)
 
-    def get_code(self, icd_version: int, code: str):
+    def get_code(self, icd_version: int, code: str) -> Union[dict, None]:
         """
         :return: a list of URIs of the entity in the available releases
         :rtype: List
@@ -497,7 +497,7 @@ class Api:
         entity = ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
         return entity
 
-    def search_linearization(self, search_string: str):
+    def search_linearization(self, search_string: str) -> dict:
         """
         get the response from ~/icd/release/11/{release_id}/{linearization_name}/{search_string}
         """
