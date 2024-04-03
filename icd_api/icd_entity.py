@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Optional
 
 from icd_api.icd_util import get_mms_uri, get_foundation_uri, get_entity_id
 
@@ -12,28 +13,28 @@ entity_known_keys = [
 class ICDEntity:
     entity_id: str
     title: str
-    definition: str = None
-    longDefinition: str = None
-    fullySpecifiedName: str = None
-    diagnosticCriteria: str = None
-    child: list = None
-    parent: list = None
-    ancestor: list = None
-    descendant: list = None
-    synonym: list = None
-    narrowerTerm: list = None
-    inclusion: list = None
-    exclusion: list = None
-    browserUrl: str = None
+    definition: Optional[str] = None
+    longDefinition: Optional[str] = None
+    fullySpecifiedName: Optional[str] = None
+    diagnosticCriteria: Optional[str] = None
+    child: list = field(default_factory=list)
+    parent: list = field(default_factory=list)
+    ancestor: list = field(default_factory=list)
+    descendant: list = field(default_factory=list)
+    synonym: list = field(default_factory=list)
+    narrowerTerm: list = field(default_factory=list)
+    inclusion: list = field(default_factory=list)
+    exclusion: list = field(default_factory=list)
+    browserUrl: Optional[str] = None
 
     # custom attributes
-    entity_residual: str = None  # if the uri ends with unspecified or other, store that here
-    residuals: dict = None  # results of icd_api.get_residuals go here
-    lookup: dict = None  # results of icd_api.lookup go here
-    depth: int = None  # how many parents
+    entity_residual: Optional[str] = None           # if the uri ends with unspecified or other, store that here
+    residuals: dict = field(default_factory=dict)   # results of icd_api.get_residuals go here
+    lookup: dict = field(default_factory=dict)      # results of icd_api.lookup go here
+    depth: Optional[int] = None                     # how many parents
 
     # place to store any response data not itemized above
-    other: dict = None
+    other: dict = field(default_factory=dict)
 
     @property
     def request_type(self):
@@ -72,7 +73,7 @@ class ICDEntity:
         return len(self.child_ids)
 
     @property
-    def residual(self) -> str or None:
+    def residual(self) -> Optional[str]:
         test = get_entity_id(self.foundation_uri)
         if test in ("other", "unspecified"):
             return test
