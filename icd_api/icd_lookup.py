@@ -95,7 +95,7 @@ class ICDLookup:
     @property
     def parent_id(self):
         if len(self.parent) > 1:
-            raise ValueError(f"more than one parent")
+            raise ValueError("more than one parent")
         return self.parent_ids[0]
 
     @property
@@ -115,7 +115,7 @@ class ICDLookup:
         return len(self.child_ids)
 
     @property
-    def residual(self) -> str:
+    def residual(self) -> Optional[str]:
         test = get_entity_id(self.response_id_uri)
         if test in ("other", "unspecified"):
             return test
@@ -225,7 +225,7 @@ class ICDLookup:
         return "black"
 
     @property
-    def node_filled(self) -> str:
+    def node_filled(self) -> Optional[str]:
         if self.class_kind is None:
             return None
         if self.class_kind in ["block", "chapter"]:
@@ -236,7 +236,7 @@ class ICDLookup:
     def node(self) -> str:
         return f"{self.node_filled} {self.node_color} circle"
 
-    def to_json(self, include_props: list = None, exclude_attrs: list = None):
+    def to_json(self, include_props: Optional[list] = None, exclude_attrs: Optional[list] = None):
         results = self.__dict__
         results = dict((key, value) for key, value in results.items() if value is not None and value != [])
 
