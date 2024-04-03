@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import List
+from dataclasses import dataclass, field
+from typing import List, Optional
 
 from icd_api.icd_util import get_mms_uri, get_entity_id, get_params_dicts
 
@@ -18,32 +18,34 @@ lookup_known_keys = [
 class ICDLookup:
     # this is the requested uri, provided as a param when instantiated
     request_uri: str
+
     # this is the response @id, provided as a uri from the api.  it may not always match the request_uri
     response_id_uri: str
+
     title: str
-    definition: str = None
-    long_definition: str = None
-    fully_specified_name: str = None
-    diagnostic_criteria: str = None
-    source: str = None
-    code: str = None
-    coding_note: str = None
-    block_id: str = None
-    code_range: str = None
-    class_kind: str = None
-    parent: list = None
-    child: list = None
-    ancestor: list = None
-    descendant: list = None
-    foundation_child_elsewhere: list = None
-    index_term: list = None
-    inclusion: list = None
-    exclusion: list = None
-    postcoordination_scale: list = None
-    browser_url: str = None
+    definition: Optional[str] = None
+    long_definition: Optional[str] = None
+    fully_specified_name: Optional[str] = None
+    diagnostic_criteria: Optional[str] = None
+    source: Optional[str] = None
+    code: Optional[str] = None
+    coding_note: Optional[str] = None
+    block_id: Optional[str] = None
+    code_range: Optional[str] = None
+    class_kind: Optional[str] = None
+    parent: list = field(default_factory=list)
+    child: list = field(default_factory=list)
+    ancestor: list = field(default_factory=list)
+    descendant: list = field(default_factory=list)
+    foundation_child_elsewhere: list = field(default_factory=list)
+    index_term: list = field(default_factory=list)
+    inclusion: list = field(default_factory=list)
+    exclusion: list = field(default_factory=list)
+    postcoordination_scale: list = field(default_factory=list)
+    browser_url: Optional[str] = None
 
     # place to store any response data not itemized above
-    other: dict = None
+    other: dict = field(default_factory=dict)
 
     def __repr__(self):
         response = f"Lookup {self.request_id} ({self.response_type}) - "
@@ -208,7 +210,8 @@ class ICDLookup:
 
     @property
     def index_term_uris(self):
-        foundation_refs = [it for it in self.index_term if "foundationReference" in it.keys()]
+        index_terms = self.index_term or []
+        foundation_refs = [it for it in index_terms if "foundationReference" in it.keys()]
         return [fr["foundationReference"] for fr in foundation_refs]
 
     @property
@@ -217,13 +220,15 @@ class ICDLookup:
 
     @property
     def node_color(self) -> str:
-        if self.code:
+        if self.response_type in ["in_linearization", "linearization_grouping"]:
             return "blue"
         return "black"
 
     @property
     def node_filled(self) -> str:
-        if len(self.child_ids) > 0:
+        if self.class_kind is None:
+            return None
+        if self.class_kind in ["block", "chapter"]:
             return "empty"
         return "filled"
 
