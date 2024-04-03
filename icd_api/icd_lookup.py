@@ -59,18 +59,18 @@ class ICDLookup:
         return response
 
     @property
-    def request_id(self):
+    def request_id(self) -> str:
         return get_entity_id(self.request_uri)
 
     @property
-    def response_id(self):
+    def response_id(self) -> str:
         candidate_id = get_entity_id(self.response_id_uri)
         if candidate_id not in ('other', 'unspecified'):
             return candidate_id
         return "/".join(self.response_id_uri.split("/")[-2:])
 
     @property
-    def entity_id(self):
+    def entity_id(self) -> str:
         if not self.lookup_id_match:
             raise ValueError(f"mismatched ids - {self.request_id} != {self.response_id_uri}")
 
@@ -93,7 +93,7 @@ class ICDLookup:
         return [get_entity_id(uri=uri) for uri in self.parent_uris]
 
     @property
-    def parent_id(self):
+    def parent_id(self) -> str:
         if len(self.parent) > 1:
             raise ValueError("more than one parent")
         return self.parent_ids[0]
@@ -122,19 +122,19 @@ class ICDLookup:
         return None
 
     @property
-    def is_residual(self):
+    def is_residual(self) -> bool:
         return bool(self.residual)
 
     @property
-    def is_leaf(self):
+    def is_leaf(self) -> bool:
         return len(self.child_uris) == 0
 
     @property
-    def lookup_id_match(self):
+    def lookup_id_match(self) -> bool:
         return self.request_id == self.response_id
 
     @property
-    def response_type(self):
+    def response_type(self) -> str:
         """
         One of three distinct response types when calling the /lookup endpoint
         """
@@ -153,7 +153,7 @@ class ICDLookup:
         return "not_in_linearization"
 
     @classmethod
-    def from_api(cls, request_uri: str, response_data: dict):
+    def from_api(cls, request_uri: str, response_data: dict) -> "ICDLookup":
         """
         Use the json response data from a lookup call to instantiate and return an ICDLookup object
         """
@@ -201,21 +201,21 @@ class ICDLookup:
         return len(self.direct_children_ids)
 
     @property
-    def descendant_ids(self):
+    def descendant_ids(self) -> List[str]:
         return [get_entity_id(uri) for uri in self.descendant or []]
 
     @property
-    def ancestor_ids(self):
+    def ancestor_ids(self) -> List[str]:
         return [get_entity_id(uri) for uri in self.ancestor or []]
 
     @property
-    def index_term_uris(self):
+    def index_term_uris(self) -> List[str]:
         index_terms = self.index_term or []
         foundation_refs = [it for it in index_terms if "foundationReference" in it.keys()]
         return [fr["foundationReference"] for fr in foundation_refs]
 
     @property
-    def index_term_ids(self):
+    def index_term_ids(self) -> List[str]:
         return [get_entity_id(uri) for uri in self.index_term_uris]
 
     @property
@@ -236,7 +236,7 @@ class ICDLookup:
     def node(self) -> str:
         return f"{self.node_filled} {self.node_color} circle"
 
-    def to_json(self, include_props: Optional[list] = None, exclude_attrs: Optional[list] = None):
+    def to_json(self, include_props: Optional[list] = None, exclude_attrs: Optional[list] = None) -> dict:
         results = self.__dict__
         results = dict((key, value) for key, value in results.items() if value is not None and value != [])
 
