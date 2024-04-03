@@ -37,14 +37,14 @@ class Linearisation:
 
 
 class Api:
-    def __init__(self):
-        self.base_url = os.environ.get("BASE_URL")
+    def __init__(self, base_url: str, token_endpoint: str = None, client_id: str = None, client_secret: str = None):
+        self.base_url = base_url
         self.session = self.get_session()
         self.check_connection()
 
-        self.token_endpoint = os.environ.get("TOKEN_ENDPOINT")
-        self.client_id = os.environ.get("CLIENT_ID")
-        self.client_secret = os.environ.get("CLIENT_SECRET")
+        self.token_endpoint = token_endpoint
+        self.client_id = client_id
+        self.client_secret = client_secret
         self.linearization = None  # type: Union[Linearisation, None]
         self.throttled = False
 
@@ -505,9 +505,17 @@ class Api:
         results = self.search(uri=uri)
         return results["destinationEntities"]
 
+    @classmethod
+    def from_environment(cls):
+        base_url = os.environ["BASE_URL"]
+        token_endpoint = os.environ["TOKEN_ENDPOINT"]
+        client_id = os.environ["CLIENT_ID"]
+        client_secret = os.environ["CLIENT_SECRET"]
+        return cls(base_url=base_url, token_endpoint=token_endpoint, client_id=client_id, client_secret=client_secret)
+
 
 if __name__ == "__main__":
-    api = Api()
+    api = Api.from_environment()
 
     root_icd11_entity = api.get_entity("455013390")
     root_icd10_entity = api.get_uri("release/10/2019")
