@@ -37,7 +37,11 @@ class Linearisation:
 
 
 class Api:
-    def __init__(self, base_url: str, token_endpoint: Optional[str], client_id: Optional[str], client_secret: Optional[str]):
+    def __init__(self,
+                 base_url: str,
+                 token_endpoint: Optional[str] = None,
+                 client_id: Optional[str] = None,
+                 client_secret: Optional[str] = None):
         self.base_url = base_url
         self.session = self.get_session()
         self.check_connection()
@@ -284,9 +288,13 @@ class Api:
         :rtype: dict
         """
         icd_entity = self.get_entity(entity_id=entity_id)
+        if icd_entity is None:
+            raise ValueError(f"entity_id {entity_id} not found")
+
         icd_entity.residuals = self.get_residual_codes(entity_id=entity_id)
         foundation_uri = get_foundation_uri(entity_id)
-        icd_entity.lookup = self.lookup(foundation_uri=foundation_uri)
+        lookup = self.lookup(foundation_uri=foundation_uri)
+        icd_entity.lookup = lookup
         return icd_entity
 
     def get_ancestors(self,
@@ -308,12 +316,15 @@ class Api:
             entities = []
 
         icd_entity = self.get_entity(entity_id=entity_id)
+        if icd_entity is None:
+            raise ValueError(f"entity_id {entity_id} not found")
+
         icd_entity.depth = depth
 
         print(f"{' '*depth} get_entity: {icd_entity}")
 
         if nested_output:
-            icd_entity.child_entities = []
+            icd_entity.child_entities = []  # type: ignore
 
         entities.append(icd_entity)
 
@@ -321,7 +332,7 @@ class Api:
             existing = next(iter([e for e in entities if e.entity_id == child_id]), None)
             if existing is None:
                 if nested_output:
-                    self.get_ancestors(entities=icd_entity.child_entities,
+                    self.get_ancestors(entities=icd_entity.child_entities,  # type: ignore
                                        entity_id=child_id,
                                        depth=depth + 1,
                                        nested_output=nested_output)
@@ -343,7 +354,10 @@ class Api:
         """
         if entities is None:
             entities = []
+
         entity = self.get_entity(entity_id=entity_id)
+        if entity is None:
+            raise ValueError(f"entity_id {entity_id} not found")
 
         if not entity.child_ids:
             # this is a leaf node
@@ -380,6 +394,8 @@ class Api:
         """
         uri = f"{self.base_url}/release/11/{linearization_name}"
         all_releases = self.get_request(uri=uri)
+        if all_releases is None:
+            raise ValueError(f"linearization {linearization_name} not found")
 
         # Note: the endpoint responds with http urls of all releases which feed into other properties -
         #       this local `linearization_base_url` definition safeguards against self.base_url values that are https
@@ -489,7 +505,7 @@ class Api:
         response_data = self.get_request(uri=uri)
         return response_data
 
-    def lookup(self, foundation_uri) -> Union[ICDLookup, None]:
+    def lookup(self, foundation_uri: str) -> Union[ICDLookup, None]:
         """
         This endpoint allows looking up a foundation entity within the mms linearization
         and returns where that entity is coded in this linearization.
