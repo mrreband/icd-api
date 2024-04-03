@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import os
 import time
-from typing import Union
+from typing import Union, Optional
 import urllib.parse
 
 import requests
@@ -37,7 +37,7 @@ class Linearisation:
 
 
 class Api:
-    def __init__(self, base_url: str, token_endpoint: str = None, client_id: str = None, client_secret: str = None):
+    def __init__(self, base_url: str, token_endpoint: Optional[str], client_id: Optional[str], client_secret: Optional[str]):
         self.base_url = base_url
         self.session = self.get_session()
         self.check_connection()
@@ -56,7 +56,7 @@ class Api:
             self.token = ""
 
     @staticmethod
-    def get_session() -> requests.Session:
+    def get_session() -> Union[requests.Session, requests_cache.CachedSession]:
         requests_cache_file = os.getenv("REQUESTS_CACHE_FILE")
         if requests_cache_file:
             return requests_cache.CachedSession(requests_cache_file)
@@ -208,7 +208,7 @@ class Api:
     def get_linearization_entity(self,
                                  entity_id: str,
                                  linearization_name: str,
-                                 include: str = None) -> Union[ICDLookup, None]:
+                                 include: Optional[str]) -> Union[ICDLookup, None]:
         """
         get the response from ~/icd/release/11/{release_id}/{linearization_name}/{entity_id}
 
@@ -281,7 +281,7 @@ class Api:
 
     def get_ancestors(self,
                       entity_id: str,
-                      entities: list = None,
+                      entities: Optional[list],
                       depth: int = 0,
                       nested_output: bool = True) -> list:
         """
@@ -322,7 +322,7 @@ class Api:
                                        nested_output=nested_output)
         return entities
 
-    def get_leaf_nodes(self, entity_id: str, entities: list = None) -> list:
+    def get_leaf_nodes(self, entity_id: str, entities: Optional[list]) -> list:
         """
         get leaf entities, those with no children of their own
 
@@ -363,7 +363,7 @@ class Api:
         results = self.search(uri=uri)
         return results["destinationEntities"]
 
-    def set_linearization(self, linearization_name: str, release_id: str = None) -> Linearisation:
+    def set_linearization(self, linearization_name: str, release_id: Optional[str]) -> Linearisation:
         """
         :return: basic information on the linearization together with the list of available releases
         :rtype: linearization
