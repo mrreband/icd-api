@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from datetime import datetime
 import os
 import time
@@ -8,32 +7,10 @@ import urllib.parse
 import requests
 from requests_cache import CachedSession
 
+from icd_api.linearisation import Linearisation
 from icd_api.icd_util import get_foundation_uri
 from icd_api.icd_entity import ICDEntity
 from icd_api.icd_lookup import ICDLookup
-
-
-@dataclass
-class Linearisation:
-    context: str                # url to context
-    oid: str                    # url to linearization
-    title: dict                 # language (str) and value (str)
-    latest_release_uri: str     # url to latest release
-    current_release_uri: str    # id of the current release
-    releases: list              # list of urls to prior releases
-    base_url: str
-
-    @staticmethod
-    def uri_to_id(uri: str):
-        return uri.split("/")[-2]
-
-    @property
-    def release_ids(self):
-        return [self.uri_to_id(uri) for uri in self.releases]
-
-    @property
-    def current_release_id(self):
-        return self.uri_to_id(self.current_release_uri)
 
 
 class Api:
