@@ -67,8 +67,8 @@ def get_counts(entities, parents):
 
 
 def get_leaf_nodes():
-    api = Api()
-    leaf_nodes = api.get_leaf_nodes(entity_id=root_entity_id)
+    api = Api.from_environment()
+    leaf_nodes = api.get_leaf_nodes(entity_id=root_entity_id, entities=[])
     leaf_node_path = os.path.join(output_folder, "leaf_nodes.json")
     write_json(data=leaf_nodes, file_path=leaf_node_path)
     print(len(leaf_nodes))

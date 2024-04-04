@@ -218,7 +218,7 @@ class Api:
     def get_linearization_entity(self,
                                  entity_id: str,
                                  linearization_name: str,
-                                 include: Optional[str]) -> Union[ICDLookup, None]:
+                                 include: Optional[str] = None) -> Union[ICDLookup, None]:
         """
         get the response from ~/icd/release/11/{release_id}/{linearization_name}/{entity_id}
 
@@ -343,7 +343,7 @@ class Api:
                                        nested_output=nested_output)
         return entities
 
-    def get_leaf_nodes(self, entity_id: str, entities: Optional[list]) -> list:
+    def get_leaf_nodes(self, entity_id: str, entities: list) -> list:
         """
         get leaf entities, those with no children of their own
 
@@ -352,9 +352,6 @@ class Api:
         :return: list of all leaf node ids
         :rtype: list[str]
         """
-        if entities is None:
-            entities = []
-
         entity = self.get_entity(entity_id=entity_id)
         if entity is None:
             raise ValueError(f"entity_id {entity_id} not found")

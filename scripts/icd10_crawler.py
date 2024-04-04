@@ -91,7 +91,7 @@ def get_all_icd10_codes():
     """
     get all icd 10 codes, starting at the top and building downward
     """
-    api = Api()
+    api = Api.from_environment()
     for i in range(1, 6):
         get_next_depth(api, depth=i)
 
