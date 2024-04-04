@@ -41,9 +41,10 @@ class Api:
                  base_url: str,
                  token_endpoint: Optional[str] = None,
                  client_id: Optional[str] = None,
-                 client_secret: Optional[str] = None):
+                 client_secret: Optional[str] = None,
+                 cached_session_config: Optional[dict] = None):
         self.base_url = base_url
-        self.session = self.get_session()
+        self.session = self.get_session(cached_session_config=cached_session_config)
         self.check_connection()
 
         self.token_endpoint = token_endpoint
@@ -60,15 +61,10 @@ class Api:
             self.token = ""
 
     @staticmethod
-    def get_session() -> Union[requests.Session, requests_cache.CachedSession]:
-        cached_session_config = {
-            "cache_name": os.getenv("REQUESTS_CACHE_NAME"),
-            "backend": os.getenv("REQUESTS_CACHE_BACKEND", "sqlite")
-        }
-        if cached_session_config.get("cache_name"):
-            return requests_cache.CachedSession(**cached_session_config)
-        else:
+    def get_session(cached_session_config: Optional[dict] = None) -> Union[requests.Session, requests_cache.CachedSession]:
+        if not cached_session_config or not cached_session_config.get("cache_name"):
             return requests.session()
+        return requests_cache.CachedSession(**cached_session_config)
 
     def check_connection(self):
         """
@@ -541,7 +537,17 @@ class Api:
         token_endpoint = os.environ["TOKEN_ENDPOINT"]
         client_id = os.environ["CLIENT_ID"]
         client_secret = os.environ["CLIENT_SECRET"]
-        return cls(base_url=base_url, token_endpoint=token_endpoint, client_id=client_id, client_secret=client_secret)
+
+        cached_session_config = {
+            "cache_name": os.getenv("REQUESTS_CACHE_NAME"),
+            "backend": os.getenv("REQUESTS_CACHE_BACKEND", "sqlite")
+        }
+
+        return cls(base_url=base_url,
+                   token_endpoint=token_endpoint,
+                   client_id=client_id,
+                   client_secret=client_secret,
+                   cached_session_config=cached_session_config)
 
 
 if __name__ == "__main__":
