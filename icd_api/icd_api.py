@@ -7,7 +7,7 @@ import urllib.parse
 import requests
 from requests_cache import CachedSession
 
-from icd_api.linearisation import Linearisation
+from icd_api.linearization import Linearization
 from icd_api.icd_util import get_foundation_uri
 from icd_api.icd_entity import ICDEntity
 from icd_api.icd_lookup import ICDLookup
@@ -27,7 +27,7 @@ class Api:
         self.token_endpoint = token_endpoint
         self.client_id = client_id
         self.client_secret = client_secret
-        self.linearization = None  # type: Union[Linearisation, None]
+        self.linearization = None  # type: Union[Linearization, None]
         self.throttled = False
 
         if self.use_auth_token:
@@ -402,7 +402,7 @@ class Api:
         results = self.search(uri=uri)
         return results["destinationEntities"]
 
-    def set_linearization(self, linearization_name: str, release_id: Optional[str]) -> Linearisation:
+    def set_linearization(self, linearization_name: str, release_id: Optional[str]) -> Linearization:
         """
         :return: basic information on the linearization together with the list of available releases
         :rtype: linearization
@@ -415,7 +415,7 @@ class Api:
         # Note: the endpoint responds with http urls of all releases which feed into other properties -
         #       this local `linearization_base_url` definition safeguards against self.base_url values that are https
         linearization_base_url = self.base_url.replace("https://", "http://")
-        linearization = Linearisation(
+        linearization = Linearization(
             context=all_releases["@context"],
             oid=all_releases["@id"],
             title=all_releases["title"],

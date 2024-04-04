@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class Linearisation:
+class Linearization:
     context: str                # url to context
     oid: str                    # url to linearization
     title: dict                 # language (str) and value (str)
