@@ -61,9 +61,10 @@ class Api:
 
     @staticmethod
     def get_session() -> Union[requests.Session, requests_cache.CachedSession]:
-        requests_cache_file = os.getenv("REQUESTS_CACHE_FILE")
-        if requests_cache_file:
-            return requests_cache.CachedSession(requests_cache_file)
+        cache_name = os.getenv("REQUESTS_CACHE_NAME")
+        backend = os.getenv("REQUESTS_CACHE_BACKEND", "sqlite")
+        if cache_name:
+            return requests_cache.CachedSession(cache_name=cache_name, backend=backend)
         else:
             return requests.session()
 
