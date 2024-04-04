@@ -8,4 +8,3 @@ class Linearisation:
     title: dict             # language (str) and value (str)
     latest_release: str     # url to latest release
     releases: list          # list of urls to prior releases
-
