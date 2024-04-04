@@ -402,6 +402,7 @@ class Api:
         #       this local `linearization_base_url` definition safeguards against self.base_url values that are https
         linearization_base_url = self.base_url.replace("https://", "http://")
         linearization = Linearization(
+            name=linearization_name,
             context=all_releases["@context"],
             oid=all_releases["@id"],
             title=all_releases["title"],

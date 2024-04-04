@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Linearization:
+    name: str                   # name of the linearization (eg "mms" or "icf")
     context: str                # url to context
     oid: str                    # url to linearization
     title: dict                 # language (str) and value (str)
