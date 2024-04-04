@@ -10,7 +10,7 @@ load_dotenv(find_dotenv())
 
 @pytest.fixture(scope="session")
 def api():
-    _api = Api()
+    _api = Api.from_environment()
     _api.set_linearization("mms", release_id="2023-01")
     return _api
 
@@ -22,15 +22,15 @@ def test_api(api):
 
 def test_set_linearization():
     # create a separate Api object so as to not contaminate the fixture
-    test = Api()
-    linearization = test.set_linearization("mms")
+    test = Api.from_environment()
+    linearization = test.set_linearization("mms", "2024-01")
     assert linearization
     assert test.current_release_id == "2024-01"
 
 
 def test_get_all_children(api):
     root_entity_id = "1301318821"  # higher up: 1920852714  # lower down: 1301318821
-    all_entities = api.get_ancestors(root_entity_id)
+    all_entities = api.get_ancestors(root_entity_id, entities=[])
     assert all_entities
 
 
@@ -158,16 +158,16 @@ def test_missing_entities(api):
 def test_cache_nocache():
     # api with no cache
     os.environ["REQUESTS_CACHE_FILE"] = ""
-    api = Api()
-    assert api.use_cache is False
+    _api = Api.from_environment()
+    assert _api.use_cache is False
 
     # api with cache
     os.environ["REQUESTS_CACHE_FILE"] = "sure why not"
-    api = Api()
-    assert api.use_cache is True
+    _api = Api.from_environment()
+    assert _api.use_cache is True
 
     # cleanup (del bc it has a lock on the sqlite file)
-    del api
+    del _api
     if os.path.exists("sure why not.sqlite"):
         os.remove("sure why not.sqlite")
 
