@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import List
+from dataclasses import dataclass, field
+from typing import List, Optional
 
 from icd_api.icd_util import get_mms_uri, get_entity_id, get_params_dicts
 
@@ -18,32 +18,34 @@ lookup_known_keys = [
 class ICDLookup:
     # this is the requested uri, provided as a param when instantiated
     request_uri: str
+
     # this is the response @id, provided as a uri from the api.  it may not always match the request_uri
     response_id_uri: str
+
     title: str
-    definition: str = None
-    long_definition: str = None
-    fully_specified_name: str = None
-    diagnostic_criteria: str = None
-    source: str = None
-    code: str = None
-    coding_note: str = None
-    block_id: str = None
-    code_range: str = None
-    class_kind: str = None
-    parent: list = None
-    child: list = None
-    ancestor: list = None
-    descendant: list = None
-    foundation_child_elsewhere: list = None
-    index_term: list = None
-    inclusion: list = None
-    exclusion: list = None
-    postcoordination_scale: list = None
-    browser_url: str = None
+    definition: Optional[str] = None
+    long_definition: Optional[str] = None
+    fully_specified_name: Optional[str] = None
+    diagnostic_criteria: Optional[str] = None
+    source: Optional[str] = None
+    code: Optional[str] = None
+    coding_note: Optional[str] = None
+    block_id: Optional[str] = None
+    code_range: Optional[str] = None
+    class_kind: Optional[str] = None
+    parent: list = field(default_factory=list)
+    child: list = field(default_factory=list)
+    ancestor: list = field(default_factory=list)
+    descendant: list = field(default_factory=list)
+    foundation_child_elsewhere: list = field(default_factory=list)
+    index_term: list = field(default_factory=list)
+    inclusion: list = field(default_factory=list)
+    exclusion: list = field(default_factory=list)
+    postcoordination_scale: list = field(default_factory=list)
+    browser_url: Optional[str] = None
 
     # place to store any response data not itemized above
-    other: dict = None
+    other: dict = field(default_factory=dict)
 
     def __repr__(self):
         response = f"Lookup {self.request_id} ({self.response_type}) - "
@@ -57,18 +59,18 @@ class ICDLookup:
         return response
 
     @property
-    def request_id(self):
+    def request_id(self) -> str:
         return get_entity_id(self.request_uri)
 
     @property
-    def response_id(self):
+    def response_id(self) -> str:
         candidate_id = get_entity_id(self.response_id_uri)
         if candidate_id not in ('other', 'unspecified'):
             return candidate_id
         return "/".join(self.response_id_uri.split("/")[-2:])
 
     @property
-    def entity_id(self):
+    def entity_id(self) -> str:
         if not self.lookup_id_match:
             raise ValueError(f"mismatched ids - {self.request_id} != {self.response_id_uri}")
 
@@ -91,9 +93,9 @@ class ICDLookup:
         return [get_entity_id(uri=uri) for uri in self.parent_uris]
 
     @property
-    def parent_id(self):
+    def parent_id(self) -> str:
         if len(self.parent) > 1:
-            raise ValueError(f"more than one parent")
+            raise ValueError("more than one parent")
         return self.parent_ids[0]
 
     @property
@@ -113,26 +115,26 @@ class ICDLookup:
         return len(self.child_ids)
 
     @property
-    def residual(self) -> str:
+    def residual(self) -> Optional[str]:
         test = get_entity_id(self.response_id_uri)
         if test in ("other", "unspecified"):
             return test
         return None
 
     @property
-    def is_residual(self):
+    def is_residual(self) -> bool:
         return bool(self.residual)
 
     @property
-    def is_leaf(self):
+    def is_leaf(self) -> bool:
         return len(self.child_uris) == 0
 
     @property
-    def lookup_id_match(self):
+    def lookup_id_match(self) -> bool:
         return self.request_id == self.response_id
 
     @property
-    def response_type(self):
+    def response_type(self) -> str:
         """
         One of three distinct response types when calling the /lookup endpoint
         """
@@ -151,12 +153,12 @@ class ICDLookup:
         return "not_in_linearization"
 
     @classmethod
-    def from_api(cls, request_uri: str, response_data: dict):
+    def from_api(cls, request_uri: str, response_data: dict) -> "ICDLookup":
         """
         Use the json response data from a lookup call to instantiate and return an ICDLookup object
         """
         if response_data is None:
-            return None
+            raise ValueError("no response_data")
         params, other = get_params_dicts(response_data=response_data, known_keys=lookup_known_keys)
         params["response_id_uri"] = response_data.get("@id", "")
         obj = cls(**params, other=other, request_uri=request_uri)
@@ -199,31 +201,34 @@ class ICDLookup:
         return len(self.direct_children_ids)
 
     @property
-    def descendant_ids(self):
+    def descendant_ids(self) -> List[str]:
         return [get_entity_id(uri) for uri in self.descendant or []]
 
     @property
-    def ancestor_ids(self):
+    def ancestor_ids(self) -> List[str]:
         return [get_entity_id(uri) for uri in self.ancestor or []]
 
     @property
-    def index_term_uris(self):
-        foundation_refs = [it for it in self.index_term if "foundationReference" in it.keys()]
+    def index_term_uris(self) -> List[str]:
+        index_terms = self.index_term or []
+        foundation_refs = [it for it in index_terms if "foundationReference" in it.keys()]
         return [fr["foundationReference"] for fr in foundation_refs]
 
     @property
-    def index_term_ids(self):
+    def index_term_ids(self) -> List[str]:
         return [get_entity_id(uri) for uri in self.index_term_uris]
 
     @property
     def node_color(self) -> str:
-        if self.code:
+        if self.response_type in ["in_linearization", "linearization_grouping"]:
             return "blue"
         return "black"
 
     @property
-    def node_filled(self) -> str:
-        if len(self.child_ids) > 0:
+    def node_filled(self) -> Optional[str]:
+        if self.class_kind is None:
+            return None
+        if self.class_kind in ["block", "chapter"]:
             return "empty"
         return "filled"
 
@@ -231,7 +236,7 @@ class ICDLookup:
     def node(self) -> str:
         return f"{self.node_filled} {self.node_color} circle"
 
-    def to_json(self, include_props: list = None, exclude_attrs: list = None):
+    def to_json(self, include_props: Optional[list] = None, exclude_attrs: Optional[list] = None) -> dict:
         results = self.__dict__
         results = dict((key, value) for key, value in results.items() if value is not None and value != [])
 
