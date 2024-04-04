@@ -7,7 +7,7 @@ def load_json(file_path: str) -> dict:
     """
     read a json file into a dict
 
-    :param file_name: path to the json file
+    :param file_path: path to the json file
     :return: dictionary from json.loads
     """
     with open(file_path, "r") as file:
