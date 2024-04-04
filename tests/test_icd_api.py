@@ -157,12 +157,12 @@ def test_missing_entities(api):
 
 def test_cache_nocache():
     # api with no cache
-    os.environ["REQUESTS_CACHE_FILE"] = ""
+    os.environ["REQUESTS_CACHE_NAME"] = ""
     _api = Api.from_environment()
     assert _api.use_cache is False
 
     # api with cache
-    os.environ["REQUESTS_CACHE_FILE"] = "sure why not"
+    os.environ["REQUESTS_CACHE_NAME"] = "sure why not"
     _api = Api.from_environment()
     assert _api.use_cache is True
 

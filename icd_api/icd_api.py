@@ -6,7 +6,7 @@ from typing import Union, Optional
 import urllib.parse
 
 import requests
-import requests_cache
+from requests_cache import CachedSession
 
 from icd_api.icd_util import get_foundation_uri
 from icd_api.icd_entity import ICDEntity
@@ -41,9 +41,10 @@ class Api:
                  base_url: str,
                  token_endpoint: Optional[str] = None,
                  client_id: Optional[str] = None,
-                 client_secret: Optional[str] = None):
+                 client_secret: Optional[str] = None,
+                 cached_session_config: Optional[dict] = None):
         self.base_url = base_url
-        self.session = self.get_session()
+        self.session = self.get_session(cached_session_config=cached_session_config)
         self.check_connection()
 
         self.token_endpoint = token_endpoint
@@ -60,12 +61,23 @@ class Api:
             self.token = ""
 
     @staticmethod
-    def get_session() -> Union[requests.Session, requests_cache.CachedSession]:
-        requests_cache_file = os.getenv("REQUESTS_CACHE_FILE")
-        if requests_cache_file:
-            return requests_cache.CachedSession(requests_cache_file)
-        else:
+    def get_session(cached_session_config: Optional[dict] = None) -> Union[requests.Session, CachedSession]:
+        """
+        Create a CachedSession if cached_session_config is provided, otherwise create a normal requests.Session
+
+        :param cached_session_config: any kwargs that are accepted by CachedSession()
+            Optionally include any kwargs that are accepted by CachedSession constructor.
+            Typically, this includes "cache_name" and "backend".
+
+            The minimum requirement is a value for key "cache_name" that is not None.
+            If no "backend" is provided, the default is sqlite, and d["cache_name"] is a file path.
+        :type cached_session_config: dict
+        :return: a CachedSession if the required config was provided, otherwise a normal requests Session
+        :rtype: Union[requests.Session, CachedSession]
+        """
+        if not cached_session_config or not cached_session_config.get("cache_name"):
             return requests.session()
+        return CachedSession(**cached_session_config)
 
     def check_connection(self):
         """
@@ -79,7 +91,11 @@ class Api:
 
     @property
     def use_cache(self) -> bool:
-        return isinstance(self.session, requests_cache.CachedSession)
+        """
+        :return: whether the instance was created with a cache or not - see self.get_session()
+        :rtype: bool
+        """
+        return isinstance(self.session, CachedSession)
 
     @property
     def token_is_valid(self) -> bool:
@@ -128,7 +144,7 @@ class Api:
     @property
     def use_auth_token(self) -> bool:
         """
-        If the target server is locally deployed, authentication is not required:
+        If the target server is locally deployed, authentication is not implemented:
         https://icd.who.int/icdapi/docs2/ICDAPI-LocalDeployment/
 
         :return: whether the instance contains all required info for getting an OATH2 auth token
@@ -138,7 +154,11 @@ class Api:
 
     @property
     def headers(self) -> dict:
-        # HTTP header fields to set
+        """
+        :return: HTTP header fields that are required for all requests (except for getting a token)
+        :rtype: dict
+        """
+        # todo: language and version should not be hard-coded
         headers = {
             'Authorization': 'Bearer ' + self.token,
             'Accept': 'application/json',
@@ -152,11 +172,17 @@ class Api:
         if self.linearization:
             return self.linearization.current_release_id
         else:
+            # todo: default release should not be hard-coded
             return "2023-01"
 
     def get_request(self, uri) -> Union[dict, None]:
         """
-        helper method for making get requests
+        helper method for making get requests (except for getting a token)
+
+        :return: the response json object if 200
+                 None if 404
+                 all other status codes fail
+        :rtype: Union[dict, None]
         """
         r = self.session.get(uri, headers=self.headers, verify=False)
         if r.status_code == 200:
@@ -168,7 +194,11 @@ class Api:
             raise ValueError(f"Api.get_request -- unexpected response {r.status_code}")
 
     def get_depth_recurse(self, entity_id: str) -> int:
-        """keep getting parent until you get to the root, report back the depth"""
+        """
+        keep getting parent until you get to the root, report back the depth
+
+        todo: delete this - it's misleading as depth can vary based on which parent you choose
+        """
         depth = 0
         entity = self.get_entity(entity_id=entity_id)
         while entity is not None:
@@ -180,6 +210,10 @@ class Api:
     def get_residual_codes(self, entity_id, linearization_name: str = "mms") -> dict:
         """
         get Y-code and Z-code information for the provided entity, if they exist
+
+        todo: linearization_name and current_release_id should both come from self.linearization,
+              or pass in a Linearization object here
+              same for a few other methods too (eg get_linearization_entity)
         """
         uris = {
             "Y": f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/{entity_id}/other",
@@ -369,6 +403,8 @@ class Api:
     def search(self, uri) -> dict:
         """
         get the response from a post request to ~/entity/search?q={search_string}
+
+        todo: rename this to post_request - this appears to have been conflated with search_entities
         """
         r = requests.post(uri, headers=self.headers, verify=False)
         results = r.json()
@@ -379,6 +415,11 @@ class Api:
     def search_entities(self, search_string: str) -> list:
         """
         search all foundation entities for the provided search string
+
+        :param search_string: value to search for
+        :type search_string: str
+        :return: search results as a list of objects
+        :rtype: list
         """
         uri = f"{self.base_url}/entity/search?q={search_string}"
         results = self.search(uri=uri)
@@ -424,6 +465,7 @@ class Api:
         :return: a list of URIs to the entity in the releases for which the entity is available
         :rtype: List
         """
+        # todo: why is this not using self.get_request()?
         uri = f"{self.base_url}/release/11/{linearization_name}/{entity_id}"
         r = requests.get(uri, headers=self.headers, verify=False)
 
@@ -491,6 +533,10 @@ class Api:
 
     def get_code(self, icd_version: int, code: str) -> Union[dict, None]:
         """
+        :param icd_version: code version (10 or 11)
+        :type icd_version: int
+        :param code: code to lookup
+        :type code: str
         :return: a list of URIs of the entity in the available releases
         :rtype: List
         """
@@ -538,7 +584,17 @@ class Api:
         token_endpoint = os.environ["TOKEN_ENDPOINT"]
         client_id = os.environ["CLIENT_ID"]
         client_secret = os.environ["CLIENT_SECRET"]
-        return cls(base_url=base_url, token_endpoint=token_endpoint, client_id=client_id, client_secret=client_secret)
+
+        cached_session_config = {
+            "cache_name": os.getenv("REQUESTS_CACHE_NAME"),
+            "backend": os.getenv("REQUESTS_CACHE_BACKEND", "sqlite")
+        }
+
+        return cls(base_url=base_url,
+                   token_endpoint=token_endpoint,
+                   client_id=client_id,
+                   client_secret=client_secret,
+                   cached_session_config=cached_session_config)
 
 
 if __name__ == "__main__":
