@@ -170,20 +170,6 @@ class Api:
         else:
             raise ValueError(f"Api.get_request -- unexpected response {r.status_code}")
 
-    def get_depth_recurse(self, entity_id: str) -> int:
-        """
-        keep getting parent until you get to the root, report back the depth
-
-        todo: delete this - it's misleading as depth can vary based on which parent you choose
-        """
-        depth = 0
-        entity = self.get_entity(entity_id=entity_id)
-        while entity is not None:
-            parent_id = entity.parent_ids[0]
-            depth += 1
-            entity = self.get_entity(parent_id)
-        return depth - 1
-
     def get_residual_codes(self, entity_id, linearization_name: str = "mms") -> dict:
         """
         get Y-code and Z-code information for the provided entity, if they exist
