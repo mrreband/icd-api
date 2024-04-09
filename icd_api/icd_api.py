@@ -553,18 +553,18 @@ class Api:
 
     @classmethod
     def from_environment(cls):
-        base_url = os.environ["BASE_URL"]
-        linearization_name = os.environ["LINEARIZATION_NAME"]
-        language = os.environ["LANGUAGE"]
-        api_version = os.environ["API_VERSION"]
-        release_id = os.environ["RELEASE_ID"]
-        token_endpoint = os.environ["TOKEN_ENDPOINT"]
-        client_id = os.environ["CLIENT_ID"]
-        client_secret = os.environ["CLIENT_SECRET"]
+        base_url = os.environ["ICDAPI_BASE_URL"]
+        linearization_name = os.environ["ICDAPI_LINEARIZATION_NAME"]
+        language = os.environ["ICDAPI_LANGUAGE"]
+        api_version = os.environ["ICDAPI_API_VERSION"]
+        release_id = os.environ["ICDAPI_RELEASE_ID"]
+        token_endpoint = os.environ["ICDAPI_TOKEN_ENDPOINT"]
+        client_id = os.environ["ICDAPI_CLIENT_ID"]
+        client_secret = os.environ["ICDAPI_CLIENT_SECRET"]
 
         cached_session_config = {
-            "cache_name": os.getenv("REQUESTS_CACHE_NAME"),
-            "backend": os.getenv("REQUESTS_CACHE_BACKEND", "sqlite")
+            "cache_name": os.getenv("ICDAPI_REQUESTS_CACHE_NAME"),
+            "backend": os.getenv("ICDAPI_REQUESTS_CACHE_BACKEND", "sqlite")
         }
 
         return cls(base_url=base_url,
