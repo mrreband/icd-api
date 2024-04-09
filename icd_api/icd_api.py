@@ -16,10 +16,32 @@ from icd_api.icd_lookup import ICDLookup
 class Api:
     def __init__(self,
                  base_url: str,
+                 linearization_name: str,
+                 release_id: Optional[str] = None,
                  token_endpoint: Optional[str] = None,
                  client_id: Optional[str] = None,
                  client_secret: Optional[str] = None,
                  cached_session_config: Optional[dict] = None):
+        """
+        Client for requests to an ICD-API instance
+
+        :param base_url: url of the target instance
+        :type base_url: str
+        :param linearization_name: name of the linearization to query (eg "mms", "icf")
+        :type linearization_name: str
+        :param release_id: optional API release id to target - default is the latest release
+        :type release_id: Optional[str]
+        :param token_endpoint: optional endpoint for requesting tokens -
+                               the WHO API uses token-based authentication, whereas local deployments of the API do not
+        :type token_endpoint: str
+        :param client_id: id for requesting a token (not required for local deployments)
+        :type client_id: str
+        :param client_secret: secret for requesting a token (not required for local deployments)
+        :type client_secret: str
+        :param cached_session_config: optional configuration for using requests_cache instead of requests.
+                                      see self.get_session for more info
+        :type cached_session_config: dict
+        """
         self.base_url = base_url
         self.session = self.get_session(cached_session_config=cached_session_config)
         self.check_connection()
@@ -27,8 +49,6 @@ class Api:
         self.token_endpoint = token_endpoint
         self.client_id = client_id
         self.client_secret = client_secret
-        self.linearization = None  # type: Union[Linearization, None]
-        self.throttled = False
 
         if self.use_auth_token:
             self.cached_token_path = "../.token"
@@ -36,6 +56,9 @@ class Api:
         else:
             self.cached_token_path = ""
             self.token = ""
+
+        self.linearization = self.set_linearization(linearization_name=linearization_name, release_id=release_id)
+        self.throttled = False
 
     @staticmethod
     def get_session(cached_session_config: Optional[dict] = None) -> Union[requests.Session, CachedSession]:
@@ -528,6 +551,8 @@ class Api:
     @classmethod
     def from_environment(cls):
         base_url = os.environ["BASE_URL"]
+        linearization_name = os.environ["LINEARIZATION_NAME"]
+        release_id = os.environ["RELEASE_ID"]
         token_endpoint = os.environ["TOKEN_ENDPOINT"]
         client_id = os.environ["CLIENT_ID"]
         client_secret = os.environ["CLIENT_SECRET"]
@@ -538,6 +563,8 @@ class Api:
         }
 
         return cls(base_url=base_url,
+                   linearization_name=linearization_name,
+                   release_id=release_id,
                    token_endpoint=token_endpoint,
                    client_id=client_id,
                    client_secret=client_secret,
