@@ -16,6 +16,8 @@ from icd_api.icd_lookup import ICDLookup
 class Api:
     def __init__(self,
                  base_url: str,
+                 language: str,
+                 api_version: str,
                  linearization_name: str,
                  release_id: Optional[str] = None,
                  token_endpoint: Optional[str] = None,
@@ -43,6 +45,8 @@ class Api:
         :type cached_session_config: dict
         """
         self.base_url = base_url
+        self.language = language
+        self.api_version = api_version
         self.session = self.get_session(cached_session_config=cached_session_config)
         self.check_connection()
 
@@ -83,7 +87,7 @@ class Api:
         """
         Check if the server is available - if it is not, raise an error with a helpful message
         """
-        swagger_endpoint = f"{self.base_url.rstrip('/icd')}/swagger/index.html"
+        swagger_endpoint = f"{self.base_url.removesuffix('/icd')}/swagger/index.html"
         try:
             self.session.get(swagger_endpoint)
         except requests.exceptions.ConnectionError:
@@ -158,12 +162,11 @@ class Api:
         :return: HTTP header fields that are required for all requests (except for getting a token)
         :rtype: dict
         """
-        # todo: language and version should not be hard-coded
         headers = {
             'Authorization': 'Bearer ' + self.token,
             'Accept': 'application/json',
-            'Accept-Language': 'en',
-            'API-Version': 'v2',
+            'Accept-Language': self.language,
+            'API-Version': self.api_version,
         }
         return headers
 
@@ -552,6 +555,8 @@ class Api:
     def from_environment(cls):
         base_url = os.environ["BASE_URL"]
         linearization_name = os.environ["LINEARIZATION_NAME"]
+        language = os.environ["LANGUAGE"]
+        api_version = os.environ["API_VERSION"]
         release_id = os.environ["RELEASE_ID"]
         token_endpoint = os.environ["TOKEN_ENDPOINT"]
         client_id = os.environ["CLIENT_ID"]
@@ -563,6 +568,8 @@ class Api:
         }
 
         return cls(base_url=base_url,
+                   language=language,
+                   api_version=api_version,
                    linearization_name=linearization_name,
                    release_id=release_id,
                    token_endpoint=token_endpoint,
