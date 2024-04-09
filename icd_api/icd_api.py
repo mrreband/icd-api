@@ -409,18 +409,15 @@ class Api:
         self.linearization = linearization
         return linearization
 
-    def get_entity_linearization_releases(self, entity_id: int, linearization_name: str = "mms") -> list:
+    def get_entity_linearization_releases(self, entity_id: int, linearization_name: str = "mms") -> dict:
         """
         get the response from ~/icd/release/11/{linearization_name}/{entity_id}
 
         :return: a list of URIs to the entity in the releases for which the entity is available
         :rtype: List
         """
-        # todo: why is this not using self.get_request()?
         uri = f"{self.base_url}/release/11/{linearization_name}/{entity_id}"
-        r = requests.get(uri, headers=self.headers, verify=False)
-
-        results = r.json()
+        results = self.get_request(uri=uri)
         return results
 
     def get_uri(self, uri: str) -> list:
