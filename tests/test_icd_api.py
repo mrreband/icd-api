@@ -43,23 +43,23 @@ def test_get_entity(api):
 
 
 def test_get_linearization_entity(api):
-    entity = api.get_linearization_entity(entity_id="1376721186", linearization_name="mms")
+    entity = api.get_linearization_entity(entity_id="1376721186")
     assert entity
     assert "136616595" not in entity.child_ids
 
 
 def test_get_linearization_descendants(api):
-    descendants = api.get_linearization_descendent_ids(entity_id="1376721186", linearization_name="mms")
+    descendants = api.get_linearization_descendent_ids(entity_id="1376721186")
     assert descendants
 
 
 def test_get_linearization_ancestors(api):
-    ancestors = api.get_linearization_ancestor_ids(entity_id="1376721186", linearization_name="mms")
+    ancestors = api.get_linearization_ancestor_ids(entity_id="1376721186")
     assert ancestors
 
 
 def test_get_foundation_child_elsewhere(api):
-    linearization_entity = api.get_linearization_entity(entity_id="1376721186", linearization_name="mms")
+    linearization_entity = api.get_linearization_entity(entity_id="1376721186")
     assert linearization_entity
     assert "136616595" in linearization_entity.foundation_child_elsewhere_ids
 

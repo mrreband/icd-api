@@ -170,14 +170,11 @@ class Api:
         else:
             raise ValueError(f"Api.get_request -- unexpected response {r.status_code}")
 
-    def get_residual_codes(self, entity_id, linearization_name: str = "mms") -> dict:
+    def get_residual_codes(self, entity_id: str) -> dict:
         """
         get Y-code and Z-code information for the provided entity, if they exist
-
-        todo: linearization_name and current_release_id should both come from self.linearization,
-              or pass in a Linearization object here
-              same for a few other methods too (eg get_linearization_entity)
         """
+        linearization_name = self.linearization.name
         uris = {
             "Y": f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/{entity_id}/other",
             "Z": f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/{entity_id}/unspecified"
@@ -214,20 +211,18 @@ class Api:
 
     def get_linearization_entity(self,
                                  entity_id: str,
-                                 linearization_name: str,
                                  include: Optional[str] = None) -> Union[ICDLookup, None]:
         """
         get the response from ~/icd/release/11/{release_id}/{linearization_name}/{entity_id}
 
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
-        :param linearization_name: id of an ICD-11 linearization (eg mms)
-        :type linearization_name: str
         :param include: optional attributes to include in the results ("ancestor" or "descendant")
         :type include: str
         :return: linearization-specific information on the specified ICD-11 entity
         :rtype: ICDLookup
         """
+        linearization_name = self.linearization.name
         uri = f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/{entity_id}"
         if include:
             if include.lower() not in ["ancestor", "descendant"]:
@@ -241,38 +236,30 @@ class Api:
         foundation_uri = get_foundation_uri(entity_id=entity_id)
         return ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
 
-    def get_linearization_descendent_ids(self, entity_id: str, linearization_name: str) -> Union[list, None]:
+    def get_linearization_descendent_ids(self, entity_id: str) -> Union[list, None]:
         """
         get all descendents of the provided entity, in the context of the provided linearization
 
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
-        :param linearization_name: id of an ICD-11 linearization (eg mms)
-        :type linearization_name: str
         :return: list of descendant entity_ids
         :rtype: list
         """
-        obj = self.get_linearization_entity(entity_id=entity_id,
-                                            linearization_name=linearization_name,
-                                            include="descendant")
+        obj = self.get_linearization_entity(entity_id=entity_id, include="descendant")
         if obj:
             return obj.descendant_ids
         return None
 
-    def get_linearization_ancestor_ids(self, entity_id: str, linearization_name: str) -> Union[list, None]:
+    def get_linearization_ancestor_ids(self, entity_id: str) -> Union[list, None]:
         """
         get all ancestors of the provided entity, in the context of the provided linearization
 
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
-        :param linearization_name: id of an ICD-11 linearization (eg mms)
-        :type linearization_name: str
         :return: list of descendant entity_ids
         :rtype: list
         """
-        obj = self.get_linearization_entity(entity_id=entity_id,
-                                            linearization_name=linearization_name,
-                                            include="ancestor")
+        obj = self.get_linearization_entity(entity_id=entity_id, include="ancestor")
         if obj:
             return obj.ancestor_ids
         return None
@@ -538,7 +525,8 @@ class Api:
         """
         get the response from ~/icd/release/11/{release_id}/{linearization_name}/{search_string}
         """
-        uri = f"{self.base_url}/release/11/{self.current_release_id}/mms/search?q={search_string}"
+        linearization_name = self.linearization.name
+        uri = f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/search?q={search_string}"
         results = self.search(uri=uri)
         return results["destinationEntities"]
 
