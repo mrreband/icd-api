@@ -430,7 +430,6 @@ class Api:
                 raise ValueError(f"release_id {release_id} not in available releases {','.join(release_ids)}")
             linearization.current_release_uri = f"{linearization.base_url}/release/11/{release_id}/{linearization_name}"
 
-        self.linearization = linearization
         return linearization
 
     def get_entity_linearization_releases(self, entity_id: int, linearization_name: str = "mms") -> dict:
@@ -468,8 +467,9 @@ class Api:
     def get_icd10_codes(self, url: str, items: list, depth: int = 0) -> list:
         """
         get all icd10 codes recursively, throttled to not overload the servers
-        note: a local deployment of the WHO API does not contain ICD 10 endpoints,
-        so this needs to be run agains the public one
+
+        note: a local deployment of the ICD API does not contain ICD 10 endpoints,
+        so this needs to be run against the WHO's public one
 
         :return: a list of URIs of the entity in the available releases
         :rtype: List

@@ -23,9 +23,9 @@ def test_api(api):
 def test_set_linearization():
     # create a separate Api object so as to not contaminate the fixture
     test = Api.from_environment()
-    linearization = test.set_linearization("mms", "2024-01")
-    assert linearization
-    assert test.current_release_id == "2024-01"
+    test.linearization = test.set_linearization("mms", "2024-01")
+    assert test.linearization
+    assert test.linearization.current_release_id == "2024-01"
 
 
 def test_get_all_children(api):
