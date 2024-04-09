@@ -10,8 +10,8 @@ load_dotenv(find_dotenv())
 
 @pytest.fixture(scope="session")
 def api():
+    # todo: unit tests shouldn't rely on environment variables like this - use the standard Api constructor
     _api = Api.from_environment()
-    _api.set_linearization("mms", release_id="2023-01")
     return _api
 
 
@@ -20,10 +20,10 @@ def test_api(api):
     assert api.current_release_id == "2023-01"
 
 
-def test_set_linearization():
+def test_get_linearization():
     # create a separate Api object so as to not contaminate the fixture
     test = Api.from_environment()
-    test.linearization = test.set_linearization("mms", "2024-01")
+    test.linearization = test.get_linearization("mms", "2024-01")
     assert test.linearization
     assert test.linearization.current_release_id == "2024-01"
 

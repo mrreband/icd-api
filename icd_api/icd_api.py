@@ -61,7 +61,7 @@ class Api:
             self.cached_token_path = ""
             self.token = ""
 
-        self.linearization = self.set_linearization(linearization_name=linearization_name, release_id=release_id)
+        self.linearization = self.get_linearization(linearization_name=linearization_name, release_id=release_id)
         self.throttled = False
 
     @staticmethod
@@ -172,11 +172,7 @@ class Api:
 
     @property
     def current_release_id(self) -> str:
-        if self.linearization:
-            return self.linearization.current_release_id
-        else:
-            # todo: default release should not be hard-coded
-            return "2023-01"
+        return self.linearization.current_release_id
 
     def get_request(self, uri) -> Union[dict, None]:
         """
@@ -399,7 +395,7 @@ class Api:
         results = self.post_request(uri=uri)
         return results["destinationEntities"]
 
-    def set_linearization(self, linearization_name: str, release_id: Optional[str]) -> Linearization:
+    def get_linearization(self, linearization_name: str, release_id: Optional[str]) -> Linearization:
         """
         :return: basic information on the linearization together with the list of available releases
         :rtype: linearization
