@@ -170,6 +170,16 @@ class Api:
         else:
             raise ValueError(f"Api.get_request -- unexpected response {r.status_code}")
 
+    def post_request(self, uri) -> dict:
+        """
+        helper method for making post requests
+        """
+        r = requests.post(uri, headers=self.headers, verify=False)
+        results = r.json()
+        if results["error"]:
+            raise ValueError(results["errorMessage"])
+        return results
+
     def get_residual_codes(self, entity_id: str) -> dict:
         """
         get Y-code and Z-code information for the provided entity, if they exist
@@ -350,18 +360,6 @@ class Api:
                     self.get_leaf_nodes(entities=entities, entity_id=child_id)
         return entities
 
-    def search(self, uri) -> dict:
-        """
-        get the response from a post request to ~/entity/search?q={search_string}
-
-        todo: rename this to post_request - this appears to have been conflated with search_entities
-        """
-        r = requests.post(uri, headers=self.headers, verify=False)
-        results = r.json()
-        if results["error"]:
-            raise ValueError(results["errorMessage"])
-        return results
-
     def search_entities(self, search_string: str) -> list:
         """
         search all foundation entities for the provided search string
@@ -372,7 +370,7 @@ class Api:
         :rtype: list
         """
         uri = f"{self.base_url}/entity/search?q={search_string}"
-        results = self.search(uri=uri)
+        results = self.post_request(uri=uri)
         return results["destinationEntities"]
 
     def set_linearization(self, linearization_name: str, release_id: Optional[str]) -> Linearization:
@@ -524,7 +522,7 @@ class Api:
         """
         linearization_name = self.linearization.name
         uri = f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/search?q={search_string}"
-        results = self.search(uri=uri)
+        results = self.post_request(uri=uri)
         return results["destinationEntities"]
 
     @classmethod
