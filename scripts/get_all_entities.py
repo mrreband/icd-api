@@ -20,14 +20,12 @@ root_ids = {"455013390": "stem_codes_455013390.json", "1920852714": "x_codes_192
 
 def get_entities_recurse(entities: list,
                          entity_id: str,
-                         depth: int,
                          nested_output: bool,
                          exclude_duplicates: bool = False):
     """
     get everything for an entity:
     """
     icd_entity = api.get_entity(entity_id=entity_id)
-    icd_entity.depth = depth
 
     if nested_output:
         icd_entity.child_entities = []
@@ -49,7 +47,6 @@ def get_entities_recurse(entities: list,
                 recurse_child_entities = entities
             get_entities_recurse(entities=recurse_child_entities,
                                  entity_id=child_id,
-                                 depth=depth + 1,
                                  nested_output=nested_output,
                                  exclude_duplicates=exclude_duplicates)
     return entities
@@ -69,7 +66,6 @@ def get_all_entities():
             grandchild_entities = get_entities_recurse(
                 entities=[],
                 entity_id=child_id,
-                depth=0,
                 nested_output=False,
                 exclude_duplicates=True
             )

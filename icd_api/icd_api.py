@@ -338,8 +338,6 @@ class Api:
         if icd_entity is None:
             raise ValueError(f"entity_id {entity_id} not found")
 
-        icd_entity.depth = depth
-
         print(f"{' '*depth} get_entity: {icd_entity}")
 
         if nested_output:

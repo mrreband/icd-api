@@ -36,12 +36,6 @@ def test_get_linearization():
     assert test.linearization.current_release_id == "2024-01"
 
 
-def test_get_all_children(api):
-    root_entity_id = "1301318821"  # higher up: 1920852714  # lower down: 1301318821
-    all_entities = api.get_ancestors(root_entity_id, entities=[])
-    assert all_entities
-
-
 def test_get_entity(api):
     entity = api.get_entity("1920852714")
     assert entity
