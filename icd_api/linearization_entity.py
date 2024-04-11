@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+from icd_api.linearization import Linearization
 from icd_api.icd_util import get_mms_uri, get_entity_id, get_params_dicts
 
 lookup_known_keys = [
@@ -22,7 +23,9 @@ class LinearizationEntity:
     # this is the response @id, provided as a uri from the api.  it may not always match the request_uri
     response_id_uri: str
 
+    linearization: Linearization
     title: str
+
     definition: Optional[str] = None
     long_definition: Optional[str] = None
     fully_specified_name: Optional[str] = None
@@ -153,7 +156,7 @@ class LinearizationEntity:
         return "not_in_linearization"
 
     @classmethod
-    def from_api(cls, request_uri: str, response_data: dict) -> "LinearizationEntity":
+    def from_api(cls, linearization: Linearization, request_uri: str, response_data: dict) -> "LinearizationEntity":
         """
         Use the json response data from a lookup call to instantiate and return an ICDLookup object
         """
@@ -161,7 +164,7 @@ class LinearizationEntity:
             raise ValueError("no response_data")
         params, other = get_params_dicts(response_data=response_data, known_keys=lookup_known_keys)
         params["response_id_uri"] = response_data.get("@id", "")
-        obj = cls(**params, other=other, request_uri=request_uri)
+        obj = cls(**params, linearization=linearization, other=other, request_uri=request_uri)
         return obj
 
     @property

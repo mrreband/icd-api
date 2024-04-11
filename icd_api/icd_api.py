@@ -269,7 +269,9 @@ class Api:
             return None
 
         foundation_uri = get_foundation_uri(entity_id=entity_id)
-        return LinearizationEntity.from_api(request_uri=foundation_uri, response_data=response_data)
+        return LinearizationEntity.from_api(request_uri=foundation_uri,
+                                            response_data=response_data,
+                                            linearization=self.linearization)
 
     def get_linearization_descendent_ids(self, entity_id: str) -> Union[list, None]:
         """
@@ -519,7 +521,9 @@ class Api:
         if response_data is None:
             return None
 
-        entity = LinearizationEntity.from_api(request_uri=foundation_uri, response_data=response_data)
+        entity = LinearizationEntity.from_api(request_uri=foundation_uri,
+                                              response_data=response_data,
+                                              linearization=self.linearization)
         return entity
 
     def search_linearization(self, search_string: str) -> dict:
