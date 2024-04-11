@@ -11,7 +11,7 @@ from requests_cache import CachedSession
 from icd_api.linearization import Linearization
 from icd_api.icd_util import get_foundation_uri
 from icd_api.icd_entity import ICDEntity
-from icd_api.icd_lookup import LinearizationEntity
+from icd_api.linearization_entity import LinearizationEntity
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

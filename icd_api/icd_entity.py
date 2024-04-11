@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from icd_api.icd_lookup import LinearizationEntity
+from icd_api.linearization_entity import LinearizationEntity
 from icd_api.icd_util import get_mms_uri, get_foundation_uri, get_entity_id, get_params_dicts
 
 entity_known_keys = [
