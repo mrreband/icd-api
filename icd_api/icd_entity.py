@@ -22,7 +22,7 @@ class ICDEntity:
     ancestor: list = field(default_factory=list)
     descendant: list = field(default_factory=list)
     synonym: list = field(default_factory=list)
-    narrowerTerm: list = field(default_factory=list)
+    narrower_term: list = field(default_factory=list)
     inclusion: list = field(default_factory=list)
     exclusion: list = field(default_factory=list)
     browser_url: Optional[str] = None
