@@ -5,12 +5,15 @@ from typing import Union, Optional
 import urllib.parse
 
 import requests
+import urllib3
 from requests_cache import CachedSession
 
 from icd_api.linearization import Linearization
 from icd_api.icd_util import get_foundation_uri
 from icd_api.icd_entity import ICDEntity
 from icd_api.icd_lookup import ICDLookup
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class Api:
