@@ -37,7 +37,7 @@ def get_value(value: dict) -> str:
     result = process_labels (title)
     assert result == "Central nervous system"
     """
-    return value["label"]["@value"]
+    return value["@value"]
 
 
 def process_labels(labels: list, language: str = "en") -> list[str]:
@@ -57,3 +57,15 @@ def process_fcr(exclusions) -> list[dict[str, str]]:
              "foundationReference": value.get("foundationReference", None),
              "linearizationReference": value.get("linearizationReference", None)}
             for value in exclusions]
+
+
+def flatten_labels(obj: dict):
+    for label_field in obj.keys():
+        if isinstance(obj[label_field], dict):
+            if "@language" in obj[label_field].keys() and "@value" in obj[label_field].keys():
+                obj[label_field] = get_value(obj[label_field])
+        elif isinstance(obj[label_field], list):
+            for item in obj[label_field]:
+                if isinstance(item, dict) and "label" in item.keys():
+                    item["label"] = get_value(item["label"])
+    return obj

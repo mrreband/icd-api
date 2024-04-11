@@ -2,17 +2,13 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from icd_api.linearization import Linearization
-from icd_api.icd_util import get_entity_id, get_params_dicts, get_linearization_uri
+from icd_api.icd_util import get_entity_id, get_params_dicts, get_linearization_uri, flatten_labels
 
 lookup_known_keys = [
     "entity_id", "title", "definition", "longDefinition", "fullySpecifiedName", "diagnosticCriteria",
     "source", "code", "codingNote", "blockId", "codeRange", "classKind", "child", "parent", "ancestor",
     "descendant", "foundationChildElsewhere", "indexTerm", "inclusion", "exclusion", "postcoordinationScale",
 ]
-
-# todo: add a language attribute, then make props to expose str-versions of any labels that are buried in dicts
-#       these can be str: title, definition, long_definition, fully_specified_name
-#       these can be simpler lists: index_term, inclusion, exclusion
 
 
 @dataclass
@@ -164,6 +160,8 @@ class LinearizationEntity:
             raise ValueError("no response_data")
         params, other = get_params_dicts(response_data=response_data, known_keys=lookup_known_keys)
         params["response_id_uri"] = response_data.get("@id", "")
+        params = flatten_labels(obj=params)
+
         obj = cls(**params, linearization=linearization, other=other, request_uri=request_uri)
         return obj
 
