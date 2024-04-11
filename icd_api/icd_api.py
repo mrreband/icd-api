@@ -12,6 +12,7 @@ from icd_api.linearization import Linearization
 from icd_api.icd_util import get_foundation_uri
 from icd_api.icd_entity import ICDEntity
 from icd_api.linearization_entity import LinearizationEntity
+from icd_api.search_result import SearchResult
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -526,14 +527,22 @@ class Api:
                                               linearization=self.linearization)
         return entity
 
-    def search_linearization(self, search_string: str) -> dict:
+    def search_linearization(self, search_string: str) -> SearchResult:
         """
         get the response from ~/icd/release/11/{release_id}/{linearization_name}/{search_string}
         """
         linearization_name = self.linearization.name
         uri = f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/search?q={search_string}"
         results = self.post_request(uri=uri)
-        return results["destinationEntities"]
+
+        # create ICDEntity objects out of destinationEntities
+        de_dicts = results.pop("destinationEntities")
+        for de_dict in de_dicts:
+            de_dict["@id"] = de_dict["id"]
+        destination_entities = [ICDEntity.from_api(entity_id=de["id"], response_data=de) for de in de_dicts]
+
+        search_result = SearchResult.from_api(**results, destinationEntities=destination_entities)
+        return search_result
 
     @classmethod
     def from_environment(cls):

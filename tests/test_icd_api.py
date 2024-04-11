@@ -3,7 +3,10 @@ import os
 import pytest as pytest
 from dotenv import load_dotenv, find_dotenv
 
-from icd_api import Api, LinearizationEntity
+from icd_api.icd_api import Api
+from icd_api.search_result import SearchResult
+from icd_api.linearization_entity import LinearizationEntity
+from icd_api.icd_entity import ICDEntity
 
 
 @pytest.fixture(scope="session")
@@ -111,8 +114,11 @@ def test_lookup_residual(api):
 
 
 def test_search_linearization(api):
-    results = api.search_linearization(search_string="diabetes")
-    assert results
+    search_result = api.search_linearization(search_string="diabetes")
+    assert search_result
+    assert isinstance(search_result, SearchResult)
+    assert search_result.destination_entities
+    assert isinstance(search_result.destination_entities[0], ICDEntity)
 
 
 def test_get_residual(api):
