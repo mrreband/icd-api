@@ -5,12 +5,20 @@ from dotenv import load_dotenv, find_dotenv
 
 from icd_api import Api, ICDLookup
 
-load_dotenv(find_dotenv())
-
 
 @pytest.fixture(scope="session")
 def api():
-    # todo: unit tests shouldn't rely on environment variables like this - use the standard Api constructor
+    # Note: this fixture still expects env var ICDAPI_CLIENT_ID and ICDAPI_CLIENT_SECRET, hence the load_dotenv() here
+    #       unit tests should not have external dependencies - instead use unittest.mock
+    load_dotenv(find_dotenv())
+
+    os.environ["ICDAPI_BASE_URL"] = "https://id.who.int/icd"
+    os.environ["ICDAPI_TOKEN_ENDPOINT"] = "https://icdaccessmanagement.who.int/connect/token"
+    os.environ["ICDAPI_LANGUAGE"] = "en"
+    os.environ["ICDAPI_API_VERSION"] = "v2"
+    os.environ["ICDAPI_LINEARIZATION_NAME"] = "mms"
+    os.environ["ICDAPI_RELEASE_ID"] = "2023-01"
+
     _api = Api.from_environment()
     return _api
 
@@ -21,7 +29,7 @@ def test_api(api):
 
 
 def test_get_linearization():
-    # create a separate Api object so as to not contaminate the fixture
+    # create a separate Api object so as to not contaminate the session-scoped fixture
     test = Api.from_environment()
     test.linearization = test.get_linearization("mms", "2024-01")
     assert test.linearization
