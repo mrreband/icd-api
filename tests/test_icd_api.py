@@ -3,7 +3,7 @@ import os
 import pytest as pytest
 from dotenv import load_dotenv, find_dotenv
 
-from icd_api import Api, ICDLookup
+from icd_api import Api, LinearizationEntity
 
 
 @pytest.fixture(scope="session")
@@ -110,14 +110,14 @@ def test_get_code_icd_11(api):
 def test_lookup(api):
     foundation_uri = "http://id.who.int/icd/entity/1435254666"
     entity = api.lookup(foundation_uri=foundation_uri)
-    assert isinstance(entity, ICDLookup)
+    assert isinstance(entity, LinearizationEntity)
     assert entity.request_type == "lookup"
 
 
 def test_lookup_residual(api):
     foundation_uri = "http://id.who.int/icd/entity/1008196289"
     entity = api.lookup(foundation_uri=foundation_uri)
-    assert isinstance(entity, ICDLookup)
+    assert isinstance(entity, LinearizationEntity)
     assert entity.is_residual
     assert entity.residual == "unspecified"
 

@@ -11,7 +11,7 @@ from requests_cache import CachedSession
 from icd_api.linearization import Linearization
 from icd_api.icd_util import get_foundation_uri
 from icd_api.icd_entity import ICDEntity
-from icd_api.icd_lookup import ICDLookup
+from icd_api.icd_lookup import LinearizationEntity
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -246,7 +246,7 @@ class Api:
 
     def get_linearization_entity(self,
                                  entity_id: str,
-                                 include: Optional[str] = None) -> Union[ICDLookup, None]:
+                                 include: Optional[str] = None) -> Union[LinearizationEntity, None]:
         """
         get the response from ~/icd/release/11/{release_id}/{linearization_name}/{entity_id}
 
@@ -255,7 +255,7 @@ class Api:
         :param include: optional attributes to include in the results ("ancestor" or "descendant")
         :type include: str
         :return: linearization-specific information on the specified ICD-11 entity
-        :rtype: ICDLookup
+        :rtype: LinearizationEntity
         """
         linearization_name = self.linearization.name
         uri = f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/{entity_id}"
@@ -269,7 +269,7 @@ class Api:
             return None
 
         foundation_uri = get_foundation_uri(entity_id=entity_id)
-        return ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
+        return LinearizationEntity.from_api(request_uri=foundation_uri, response_data=response_data)
 
     def get_linearization_descendent_ids(self, entity_id: str) -> Union[list, None]:
         """
@@ -519,7 +519,7 @@ class Api:
         response_data = self.get_request(uri=uri)
         return response_data
 
-    def lookup(self, foundation_uri: str) -> Union[ICDLookup, None]:
+    def lookup(self, foundation_uri: str) -> Union[LinearizationEntity, None]:
         """
         This endpoint allows looking up a foundation entity within the mms linearization
         and returns where that entity is coded in this linearization.
@@ -538,7 +538,7 @@ class Api:
         if response_data is None:
             return None
 
-        entity = ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
+        entity = LinearizationEntity.from_api(request_uri=foundation_uri, response_data=response_data)
         return entity
 
     def search_linearization(self, search_string: str) -> dict:

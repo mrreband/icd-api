@@ -15,7 +15,7 @@ lookup_known_keys = [
 
 
 @dataclass
-class ICDLookup:
+class LinearizationEntity:
     # this is the requested uri, provided as a param when instantiated
     request_uri: str
 
@@ -153,7 +153,7 @@ class ICDLookup:
         return "not_in_linearization"
 
     @classmethod
-    def from_api(cls, request_uri: str, response_data: dict) -> "ICDLookup":
+    def from_api(cls, request_uri: str, response_data: dict) -> "LinearizationEntity":
         """
         Use the json response data from a lookup call to instantiate and return an ICDLookup object
         """
