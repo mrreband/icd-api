@@ -554,9 +554,9 @@ class Api:
         language = os.environ["ICDAPI_LANGUAGE"]
         api_version = os.environ["ICDAPI_API_VERSION"]
         release_id = os.environ["ICDAPI_RELEASE_ID"]
-        token_endpoint = os.environ["ICDAPI_TOKEN_ENDPOINT"]
-        client_id = os.environ["ICDAPI_CLIENT_ID"]
-        client_secret = os.environ["ICDAPI_CLIENT_SECRET"]
+        token_endpoint = os.getenv("ICDAPI_TOKEN_ENDPOINT")
+        client_id = os.getenv("ICDAPI_CLIENT_ID")
+        client_secret = os.getenv("ICDAPI_CLIENT_SECRET")
 
         cached_session_config = {
             "cache_name": os.getenv("ICDAPI_REQUESTS_CACHE_NAME"),
