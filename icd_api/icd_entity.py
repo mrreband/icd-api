@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from icd_api.icd_util import get_mms_uri, get_foundation_uri, get_entity_id, get_params_dicts
+from icd_api.icd_util import get_foundation_uri, get_entity_id, get_params_dicts
 
 entity_known_keys = [
     "title", "definition", "longDefinition", "fullySpecifiedName", "diagnosticCriteria", "child", "parent",
@@ -41,10 +41,6 @@ class ICDEntity:
     @property
     def foundation_uri(self):
         return get_foundation_uri(entity_id=self.entity_id)
-
-    @property
-    def linearization_release_uri(self):
-        return get_mms_uri(entity_id=self.entity_id)
 
     @property
     def parent_uris(self) -> list[str]:
