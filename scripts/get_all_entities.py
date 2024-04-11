@@ -7,7 +7,7 @@ from icd_api import Api
 load_dotenv(find_dotenv())
 
 api = Api.from_environment()
-api.set_linearization("mms", "2024-01")
+api.get_linearization("mms", "2024-01")
 
 
 data_folder = os.path.join(os.path.dirname(__file__), "data")

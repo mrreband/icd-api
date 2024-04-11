@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from datetime import datetime
 import os
 import time
@@ -6,52 +5,57 @@ from typing import Union, Optional
 import urllib.parse
 
 import requests
+import urllib3
 from requests_cache import CachedSession
 
+from icd_api.linearization import Linearization
 from icd_api.icd_util import get_foundation_uri
 from icd_api.icd_entity import ICDEntity
 from icd_api.icd_lookup import ICDLookup
 
-
-@dataclass
-class Linearisation:
-    context: str                # url to context
-    oid: str                    # url to linearization
-    title: dict                 # language (str) and value (str)
-    latest_release_uri: str     # url to latest release
-    current_release_uri: str    # id of the current release
-    releases: list              # list of urls to prior releases
-    base_url: str
-
-    @staticmethod
-    def uri_to_id(uri: str):
-        return uri.split("/")[-2]
-
-    @property
-    def release_ids(self):
-        return [self.uri_to_id(uri) for uri in self.releases]
-
-    @property
-    def current_release_id(self):
-        return self.uri_to_id(self.current_release_uri)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class Api:
     def __init__(self,
                  base_url: str,
+                 language: str,
+                 api_version: str,
+                 linearization_name: str,
+                 release_id: Optional[str] = None,
                  token_endpoint: Optional[str] = None,
                  client_id: Optional[str] = None,
                  client_secret: Optional[str] = None,
                  cached_session_config: Optional[dict] = None):
+        """
+        Client for requests to an ICD-API instance
+
+        :param base_url: url of the target instance
+        :type base_url: str
+        :param linearization_name: name of the linearization to query (eg "mms", "icf")
+        :type linearization_name: str
+        :param release_id: optional API release id to target - default is the latest release
+        :type release_id: Optional[str]
+        :param token_endpoint: optional endpoint for requesting tokens -
+                               the WHO API uses token-based authentication, whereas local deployments of the API do not
+        :type token_endpoint: str
+        :param client_id: id for requesting a token (not required for local deployments)
+        :type client_id: str
+        :param client_secret: secret for requesting a token (not required for local deployments)
+        :type client_secret: str
+        :param cached_session_config: optional configuration for using requests_cache instead of requests.
+                                      see self.get_session for more info
+        :type cached_session_config: dict
+        """
         self.base_url = base_url
+        self.language = language
+        self.api_version = api_version
         self.session = self.get_session(cached_session_config=cached_session_config)
         self.check_connection()
 
         self.token_endpoint = token_endpoint
         self.client_id = client_id
         self.client_secret = client_secret
-        self.linearization = None  # type: Union[Linearisation, None]
-        self.throttled = False
 
         if self.use_auth_token:
             self.cached_token_path = "../.token"
@@ -59,6 +63,9 @@ class Api:
         else:
             self.cached_token_path = ""
             self.token = ""
+
+        self.linearization = self.get_linearization(linearization_name=linearization_name, release_id=release_id)
+        self.throttled = False
 
     @staticmethod
     def get_session(cached_session_config: Optional[dict] = None) -> Union[requests.Session, CachedSession]:
@@ -83,7 +90,7 @@ class Api:
         """
         Check if the server is available - if it is not, raise an error with a helpful message
         """
-        swagger_endpoint = f"{self.base_url.rstrip('/icd')}/swagger/index.html"
+        swagger_endpoint = f"{self.base_url.removesuffix('/icd')}/swagger/index.html"
         try:
             self.session.get(swagger_endpoint)
         except requests.exceptions.ConnectionError:
@@ -158,22 +165,17 @@ class Api:
         :return: HTTP header fields that are required for all requests (except for getting a token)
         :rtype: dict
         """
-        # todo: language and version should not be hard-coded
         headers = {
             'Authorization': 'Bearer ' + self.token,
             'Accept': 'application/json',
-            'Accept-Language': 'en',
-            'API-Version': 'v2',
+            'Accept-Language': self.language,
+            'API-Version': self.api_version,
         }
         return headers
 
     @property
     def current_release_id(self) -> str:
-        if self.linearization:
-            return self.linearization.current_release_id
-        else:
-            # todo: default release should not be hard-coded
-            return "2023-01"
+        return self.linearization.current_release_id
 
     def get_request(self, uri) -> Union[dict, None]:
         """
@@ -193,28 +195,21 @@ class Api:
         else:
             raise ValueError(f"Api.get_request -- unexpected response {r.status_code}")
 
-    def get_depth_recurse(self, entity_id: str) -> int:
+    def post_request(self, uri) -> dict:
         """
-        keep getting parent until you get to the root, report back the depth
-
-        todo: delete this - it's misleading as depth can vary based on which parent you choose
+        helper method for making post requests
         """
-        depth = 0
-        entity = self.get_entity(entity_id=entity_id)
-        while entity is not None:
-            parent_id = entity.parent_ids[0]
-            depth += 1
-            entity = self.get_entity(parent_id)
-        return depth - 1
+        r = requests.post(uri, headers=self.headers, verify=False)
+        results = r.json()
+        if results["error"]:
+            raise ValueError(results["errorMessage"])
+        return results
 
-    def get_residual_codes(self, entity_id, linearization_name: str = "mms") -> dict:
+    def get_residual_codes(self, entity_id: str) -> dict:
         """
         get Y-code and Z-code information for the provided entity, if they exist
-
-        todo: linearization_name and current_release_id should both come from self.linearization,
-              or pass in a Linearization object here
-              same for a few other methods too (eg get_linearization_entity)
         """
+        linearization_name = self.linearization.name
         uris = {
             "Y": f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/{entity_id}/other",
             "Z": f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/{entity_id}/unspecified"
@@ -251,20 +246,18 @@ class Api:
 
     def get_linearization_entity(self,
                                  entity_id: str,
-                                 linearization_name: str,
                                  include: Optional[str] = None) -> Union[ICDLookup, None]:
         """
         get the response from ~/icd/release/11/{release_id}/{linearization_name}/{entity_id}
 
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
-        :param linearization_name: id of an ICD-11 linearization (eg mms)
-        :type linearization_name: str
         :param include: optional attributes to include in the results ("ancestor" or "descendant")
         :type include: str
         :return: linearization-specific information on the specified ICD-11 entity
         :rtype: ICDLookup
         """
+        linearization_name = self.linearization.name
         uri = f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/{entity_id}"
         if include:
             if include.lower() not in ["ancestor", "descendant"]:
@@ -278,38 +271,30 @@ class Api:
         foundation_uri = get_foundation_uri(entity_id=entity_id)
         return ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
 
-    def get_linearization_descendent_ids(self, entity_id: str, linearization_name: str) -> Union[list, None]:
+    def get_linearization_descendent_ids(self, entity_id: str) -> Union[list, None]:
         """
         get all descendents of the provided entity, in the context of the provided linearization
 
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
-        :param linearization_name: id of an ICD-11 linearization (eg mms)
-        :type linearization_name: str
         :return: list of descendant entity_ids
         :rtype: list
         """
-        obj = self.get_linearization_entity(entity_id=entity_id,
-                                            linearization_name=linearization_name,
-                                            include="descendant")
+        obj = self.get_linearization_entity(entity_id=entity_id, include="descendant")
         if obj:
             return obj.descendant_ids
         return None
 
-    def get_linearization_ancestor_ids(self, entity_id: str, linearization_name: str) -> Union[list, None]:
+    def get_linearization_ancestor_ids(self, entity_id: str) -> Union[list, None]:
         """
         get all ancestors of the provided entity, in the context of the provided linearization
 
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
-        :param linearization_name: id of an ICD-11 linearization (eg mms)
-        :type linearization_name: str
         :return: list of descendant entity_ids
         :rtype: list
         """
-        obj = self.get_linearization_entity(entity_id=entity_id,
-                                            linearization_name=linearization_name,
-                                            include="ancestor")
+        obj = self.get_linearization_entity(entity_id=entity_id, include="ancestor")
         if obj:
             return obj.ancestor_ids
         return None
@@ -400,18 +385,6 @@ class Api:
                     self.get_leaf_nodes(entities=entities, entity_id=child_id)
         return entities
 
-    def search(self, uri) -> dict:
-        """
-        get the response from a post request to ~/entity/search?q={search_string}
-
-        todo: rename this to post_request - this appears to have been conflated with search_entities
-        """
-        r = requests.post(uri, headers=self.headers, verify=False)
-        results = r.json()
-        if results["error"]:
-            raise ValueError(results["errorMessage"])
-        return results
-
     def search_entities(self, search_string: str) -> list:
         """
         search all foundation entities for the provided search string
@@ -422,10 +395,10 @@ class Api:
         :rtype: list
         """
         uri = f"{self.base_url}/entity/search?q={search_string}"
-        results = self.search(uri=uri)
+        results = self.post_request(uri=uri)
         return results["destinationEntities"]
 
-    def set_linearization(self, linearization_name: str, release_id: Optional[str]) -> Linearisation:
+    def get_linearization(self, linearization_name: str, release_id: Optional[str]) -> Linearization:
         """
         :return: basic information on the linearization together with the list of available releases
         :rtype: linearization
@@ -438,7 +411,8 @@ class Api:
         # Note: the endpoint responds with http urls of all releases which feed into other properties -
         #       this local `linearization_base_url` definition safeguards against self.base_url values that are https
         linearization_base_url = self.base_url.replace("https://", "http://")
-        linearization = Linearisation(
+        linearization = Linearization(
+            name=linearization_name,
             context=all_releases["@context"],
             oid=all_releases["@id"],
             title=all_releases["title"],
@@ -455,21 +429,17 @@ class Api:
                 raise ValueError(f"release_id {release_id} not in available releases {','.join(release_ids)}")
             linearization.current_release_uri = f"{linearization.base_url}/release/11/{release_id}/{linearization_name}"
 
-        self.linearization = linearization
         return linearization
 
-    def get_entity_linearization_releases(self, entity_id: int, linearization_name: str = "mms") -> list:
+    def get_entity_linearization_releases(self, entity_id: int, linearization_name: str = "mms") -> dict:
         """
         get the response from ~/icd/release/11/{linearization_name}/{entity_id}
 
         :return: a list of URIs to the entity in the releases for which the entity is available
         :rtype: List
         """
-        # todo: why is this not using self.get_request()?
         uri = f"{self.base_url}/release/11/{linearization_name}/{entity_id}"
-        r = requests.get(uri, headers=self.headers, verify=False)
-
-        results = r.json()
+        results = self.get_request(uri=uri)
         return results
 
     def get_uri(self, uri: str) -> list:
@@ -496,8 +466,9 @@ class Api:
     def get_icd10_codes(self, url: str, items: list, depth: int = 0) -> list:
         """
         get all icd10 codes recursively, throttled to not overload the servers
-        note: a local deployment of the WHO API does not contain ICD 10 endpoints,
-        so this needs to be run agains the public one
+
+        note: a local deployment of the ICD API does not contain ICD 10 endpoints,
+        so this needs to be run against the WHO's public one
 
         :return: a list of URIs of the entity in the available releases
         :rtype: List
@@ -574,23 +545,32 @@ class Api:
         """
         get the response from ~/icd/release/11/{release_id}/{linearization_name}/{search_string}
         """
-        uri = f"{self.base_url}/release/11/{self.current_release_id}/mms/search?q={search_string}"
-        results = self.search(uri=uri)
+        linearization_name = self.linearization.name
+        uri = f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/search?q={search_string}"
+        results = self.post_request(uri=uri)
         return results["destinationEntities"]
 
     @classmethod
     def from_environment(cls):
-        base_url = os.environ["BASE_URL"]
-        token_endpoint = os.environ["TOKEN_ENDPOINT"]
-        client_id = os.environ["CLIENT_ID"]
-        client_secret = os.environ["CLIENT_SECRET"]
+        base_url = os.environ["ICDAPI_BASE_URL"]
+        linearization_name = os.environ["ICDAPI_LINEARIZATION_NAME"]
+        language = os.environ["ICDAPI_LANGUAGE"]
+        api_version = os.environ["ICDAPI_API_VERSION"]
+        release_id = os.environ["ICDAPI_RELEASE_ID"]
+        token_endpoint = os.getenv("ICDAPI_TOKEN_ENDPOINT")
+        client_id = os.getenv("ICDAPI_CLIENT_ID")
+        client_secret = os.getenv("ICDAPI_CLIENT_SECRET")
 
         cached_session_config = {
-            "cache_name": os.getenv("REQUESTS_CACHE_NAME"),
-            "backend": os.getenv("REQUESTS_CACHE_BACKEND", "sqlite")
+            "cache_name": os.getenv("ICDAPI_REQUESTS_CACHE_NAME"),
+            "backend": os.getenv("ICDAPI_REQUESTS_CACHE_BACKEND", "sqlite")
         }
 
         return cls(base_url=base_url,
+                   language=language,
+                   api_version=api_version,
+                   linearization_name=linearization_name,
+                   release_id=release_id,
                    token_endpoint=token_endpoint,
                    client_id=client_id,
                    client_secret=client_secret,

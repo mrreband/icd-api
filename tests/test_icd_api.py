@@ -5,13 +5,21 @@ from dotenv import load_dotenv, find_dotenv
 
 from icd_api import Api, ICDLookup
 
-load_dotenv(find_dotenv())
-
 
 @pytest.fixture(scope="session")
 def api():
+    # Note: this fixture still expects env var ICDAPI_CLIENT_ID and ICDAPI_CLIENT_SECRET, hence the load_dotenv() here
+    #       unit tests should not have external dependencies - instead use unittest.mock
+    load_dotenv(find_dotenv())
+
+    os.environ["ICDAPI_BASE_URL"] = "https://id.who.int/icd"
+    os.environ["ICDAPI_TOKEN_ENDPOINT"] = "https://icdaccessmanagement.who.int/connect/token"
+    os.environ["ICDAPI_LANGUAGE"] = "en"
+    os.environ["ICDAPI_API_VERSION"] = "v2"
+    os.environ["ICDAPI_LINEARIZATION_NAME"] = "mms"
+    os.environ["ICDAPI_RELEASE_ID"] = "2023-01"
+
     _api = Api.from_environment()
-    _api.set_linearization("mms", release_id="2023-01")
     return _api
 
 
@@ -20,12 +28,12 @@ def test_api(api):
     assert api.current_release_id == "2023-01"
 
 
-def test_set_linearization():
-    # create a separate Api object so as to not contaminate the fixture
+def test_get_linearization():
+    # create a separate Api object so as to not contaminate the session-scoped fixture
     test = Api.from_environment()
-    linearization = test.set_linearization("mms", "2024-01")
-    assert linearization
-    assert test.current_release_id == "2024-01"
+    test.linearization = test.get_linearization("mms", "2024-01")
+    assert test.linearization
+    assert test.linearization.current_release_id == "2024-01"
 
 
 def test_get_all_children(api):
@@ -43,23 +51,23 @@ def test_get_entity(api):
 
 
 def test_get_linearization_entity(api):
-    entity = api.get_linearization_entity(entity_id="1376721186", linearization_name="mms")
+    entity = api.get_linearization_entity(entity_id="1376721186")
     assert entity
     assert "136616595" not in entity.child_ids
 
 
 def test_get_linearization_descendants(api):
-    descendants = api.get_linearization_descendent_ids(entity_id="1376721186", linearization_name="mms")
+    descendants = api.get_linearization_descendent_ids(entity_id="1376721186")
     assert descendants
 
 
 def test_get_linearization_ancestors(api):
-    ancestors = api.get_linearization_ancestor_ids(entity_id="1376721186", linearization_name="mms")
+    ancestors = api.get_linearization_ancestor_ids(entity_id="1376721186")
     assert ancestors
 
 
 def test_get_foundation_child_elsewhere(api):
-    linearization_entity = api.get_linearization_entity(entity_id="1376721186", linearization_name="mms")
+    linearization_entity = api.get_linearization_entity(entity_id="1376721186")
     assert linearization_entity
     assert "136616595" in linearization_entity.foundation_child_elsewhere_ids
 
@@ -157,12 +165,12 @@ def test_missing_entities(api):
 
 def test_cache_nocache():
     # api with no cache
-    os.environ["REQUESTS_CACHE_NAME"] = ""
+    os.environ["ICDAPI_REQUESTS_CACHE_NAME"] = ""
     _api = Api.from_environment()
     assert _api.use_cache is False
 
     # api with cache
-    os.environ["REQUESTS_CACHE_NAME"] = "sure why not"
+    os.environ["ICDAPI_REQUESTS_CACHE_NAME"] = "sure why not"
     _api = Api.from_environment()
     assert _api.use_cache is True
 
