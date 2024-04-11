@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from icd_api.icd_util import get_foundation_uri, get_entity_id, get_params_dicts
+from icd_api.icd_util import get_foundation_uri, get_entity_id, get_params_dicts, flatten_labels
 
 entity_known_keys = [
     "title", "definition", "longDefinition", "fullySpecifiedName", "diagnosticCriteria", "child", "parent",
@@ -95,10 +95,8 @@ class ICDEntity:
             response_data["entity_id"] = response_data["@id"].split("/")[-2]
 
         params, other = get_params_dicts(response_data=response_data, known_keys=entity_known_keys)
+        params = flatten_labels(obj=params)
         entity = cls(**params, other=other, entity_id=entity_id)
-
-        # todo: entity_id is provided to safeguard against residuals - requested id might not match response id
-        # todo: child_ids may contain "other" and "unspecified"
         return entity
 
     def __repr__(self):
