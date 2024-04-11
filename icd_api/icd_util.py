@@ -9,12 +9,12 @@ def get_foundation_uri(entity_id: str):
     return f"http://id.who.int/icd/entity/{entity_id}"
 
 
-def get_linearization_uri(entity_id: str, linearization: str):
-    return f"http://id.who.int/icd/release/11/beta/{linearization}/{entity_id}"
+def get_linearization_uri(entity_id: str, linearization_name: str):
+    return f"http://id.who.int/icd/release/11/beta/{linearization_name}/{entity_id}"
 
 
 def get_mms_uri(entity_id: str):
-    return get_linearization_uri(entity_id=entity_id, linearization="mms")
+    return get_linearization_uri(entity_id=entity_id, linearization_name="mms")
 
 
 def camel_to_snake(name: str) -> str:

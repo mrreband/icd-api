@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from icd_api.linearization import Linearization
-from icd_api.icd_util import get_mms_uri, get_entity_id, get_params_dicts
+from icd_api.icd_util import get_entity_id, get_params_dicts, get_linearization_uri
 
 lookup_known_keys = [
     "entity_id", "title", "definition", "longDefinition", "fullySpecifiedName", "diagnosticCriteria",
@@ -85,7 +85,7 @@ class LinearizationEntity:
 
     @property
     def linearization_release_uri(self) -> str:
-        return get_mms_uri(self.entity_id)
+        return get_linearization_uri(entity_id=self.entity_id, linearization_name=self.linearization.name)
 
     @property
     def parent_uris(self) -> list[str]:
