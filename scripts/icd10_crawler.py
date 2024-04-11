@@ -11,7 +11,7 @@ from typing import List
 import urllib3
 
 from dotenv import load_dotenv, find_dotenv
-from icd_api import Api
+from icd_api.icd_api import Api
 
 load_dotenv(find_dotenv())
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)

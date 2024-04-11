@@ -2,7 +2,7 @@ import json
 import os
 
 from dotenv import load_dotenv, find_dotenv
-from icd_api import Api
+from icd_api.icd_api import Api
 
 load_dotenv(find_dotenv())
 
