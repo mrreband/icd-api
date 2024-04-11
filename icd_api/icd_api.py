@@ -369,18 +369,20 @@ class Api:
                     self.get_leaf_nodes(entities=entities, entity_id=child_id)
         return entities
 
-    def search_entities(self, search_string: str) -> list:
+    def search_entities(self, search_string: str) -> SearchResult:
         """
         search all foundation entities for the provided search string
 
         :param search_string: value to search for
         :type search_string: str
-        :return: search results as a list of objects
-        :rtype: list
+        :return: search results
+        :rtype: SearchResult
         """
         uri = f"{self.base_url}/entity/search?q={search_string}"
         results = self.post_request(uri=uri)
-        return results["destinationEntities"]
+
+        search_result = SearchResult.from_api(**results)
+        return search_result
 
     def get_linearization(self, linearization_name: str, release_id: Optional[str]) -> Linearization:
         """
@@ -535,13 +537,7 @@ class Api:
         uri = f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/search?q={search_string}"
         results = self.post_request(uri=uri)
 
-        # create ICDEntity objects out of destinationEntities
-        de_dicts = results.pop("destinationEntities")
-        for de_dict in de_dicts:
-            de_dict["@id"] = de_dict["id"]
-        destination_entities = [ICDEntity.from_api(entity_id=de["id"], response_data=de) for de in de_dicts]
-
-        search_result = SearchResult.from_api(**results, destinationEntities=destination_entities)
+        search_result = SearchResult.from_api(**results)
         return search_result
 
     @classmethod

@@ -71,8 +71,11 @@ def test_get_foundation_child_elsewhere(api):
 
 
 def test_search_entities(api):
-    search_results = api.search_entities(search_string="diabetes")
-    assert search_results
+    search_result = api.search_entities(search_string="diabetes")
+    assert search_result
+    assert isinstance(search_result, SearchResult)
+    assert search_result.destination_entities
+    assert isinstance(search_result.destination_entities[0], ICDEntity)
 
 
 def test_get_entity_linearization(api):
