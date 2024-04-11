@@ -299,23 +299,6 @@ class Api:
             return obj.ancestor_ids
         return None
 
-    def get_entity_full(self, entity_id: str) -> ICDEntity:
-        """
-        :param entity_id: id of an ICD-11 foundation entity
-        :type entity_id: int
-        :return: results of /entity and /lookup and /residual
-        :rtype: dict
-        """
-        icd_entity = self.get_entity(entity_id=entity_id)
-        if icd_entity is None:
-            raise ValueError(f"entity_id {entity_id} not found")
-
-        icd_entity.residuals = self.get_residual_codes(entity_id=entity_id)
-        foundation_uri = get_foundation_uri(entity_id)
-        lookup = self.lookup(foundation_uri=foundation_uri)
-        icd_entity.lookup = lookup
-        return icd_entity
-
     def get_ancestors(self,
                       entity_id: str,
                       entities: Optional[list],

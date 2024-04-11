@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from icd_api.linearization_entity import LinearizationEntity
 from icd_api.icd_util import get_mms_uri, get_foundation_uri, get_entity_id, get_params_dicts
 
 entity_known_keys = [
@@ -31,7 +30,6 @@ class ICDEntity:
     # custom attributes
     entity_residual: Optional[str] = None           # if the uri ends with unspecified or other, store that here
     residuals: dict = field(default_factory=dict)   # results of icd_api.get_residuals go here
-    lookup: Optional[LinearizationEntity] = None    # results of icd_api.lookup go here
 
     # place to store any response data not itemized above
     other: dict = field(default_factory=dict)

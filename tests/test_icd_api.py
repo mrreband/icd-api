@@ -66,12 +66,6 @@ def test_get_foundation_child_elsewhere(api):
     assert "136616595" in linearization_entity.foundation_child_elsewhere_ids
 
 
-def test_get_entity_full(api):
-    entity = api.get_entity_full("2008663041")
-    assert entity.entity_id
-    assert entity.lookup
-
-
 def test_search_entities(api):
     search_results = api.search_entities(search_string="diabetes")
     assert search_results
