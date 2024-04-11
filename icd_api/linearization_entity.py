@@ -8,6 +8,7 @@ lookup_known_keys = [
     "entity_id", "title", "definition", "longDefinition", "fullySpecifiedName", "diagnosticCriteria",
     "source", "code", "codingNote", "blockId", "codeRange", "classKind", "child", "parent", "ancestor",
     "descendant", "foundationChildElsewhere", "indexTerm", "inclusion", "exclusion", "postcoordinationScale",
+    "relatedEntitiesInMaternalChapter", "relatedEntitiesInPerinatalChapter"
 ]
 
 
@@ -41,6 +42,8 @@ class LinearizationEntity:
     inclusion: list = field(default_factory=list)
     exclusion: list = field(default_factory=list)
     postcoordination_scale: list = field(default_factory=list)
+    related_entities_in_maternal_chapter: list = field(default_factory=list)
+    related_entities_in_perinatal_chapter: list = field(default_factory=list)
     browser_url: Optional[str] = None
 
     # place to store any response data not itemized above

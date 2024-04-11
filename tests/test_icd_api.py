@@ -4,6 +4,7 @@ import pytest as pytest
 from dotenv import load_dotenv, find_dotenv
 
 from icd_api.icd_api import Api
+from icd_api.icd_util import get_foundation_uri
 from icd_api.search_result import SearchResult
 from icd_api.linearization_entity import LinearizationEntity
 from icd_api.icd_entity import ICDEntity
@@ -100,9 +101,16 @@ def test_get_code_icd_11(api):
 
 def test_lookup(api):
     foundation_uri = "http://id.who.int/icd/entity/1435254666"
-    entity = api.lookup(foundation_uri=foundation_uri)
-    assert isinstance(entity, LinearizationEntity)
-    assert entity.request_type == "lookup"
+    linearization_entity = api.lookup(foundation_uri=foundation_uri)
+    assert isinstance(linearization_entity, LinearizationEntity)
+    assert linearization_entity.request_type == "lookup"
+
+    uri = get_foundation_uri(entity_id="756297560")
+    linearization_entity = api.lookup(foundation_uri=uri)
+    assert isinstance(linearization_entity, LinearizationEntity)
+    assert linearization_entity.request_type == "lookup"
+    assert linearization_entity.related_entities_in_maternal_chapter
+    assert linearization_entity.related_entities_in_perinatal_chapter
 
 
 def test_lookup_residual(api):
