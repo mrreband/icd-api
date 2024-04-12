@@ -1,28 +1,28 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 
-from icd_api.icd_util import get_mms_uri, get_entity_id, get_params_dicts
+from icd_api.linearization import Linearization
+from icd_api.icd_util import get_entity_id, get_params_dicts, get_linearization_uri, flatten_labels
 
 lookup_known_keys = [
     "entity_id", "title", "definition", "longDefinition", "fullySpecifiedName", "diagnosticCriteria",
     "source", "code", "codingNote", "blockId", "codeRange", "classKind", "child", "parent", "ancestor",
     "descendant", "foundationChildElsewhere", "indexTerm", "inclusion", "exclusion", "postcoordinationScale",
+    "relatedEntitiesInMaternalChapter", "relatedEntitiesInPerinatalChapter"
 ]
-
-# todo: add a language attribute, then make props to expose str-versions of any labels that are buried in dicts
-#       these can be str: title, definition, long_definition, fully_specified_name
-#       these can be simpler lists: index_term, inclusion, exclusion
 
 
 @dataclass
-class ICDLookup:
+class LinearizationEntity:
     # this is the requested uri, provided as a param when instantiated
     request_uri: str
 
     # this is the response @id, provided as a uri from the api.  it may not always match the request_uri
     response_id_uri: str
 
+    linearization: Linearization
     title: str
+
     definition: Optional[str] = None
     long_definition: Optional[str] = None
     fully_specified_name: Optional[str] = None
@@ -42,6 +42,8 @@ class ICDLookup:
     inclusion: list = field(default_factory=list)
     exclusion: list = field(default_factory=list)
     postcoordination_scale: list = field(default_factory=list)
+    related_entities_in_maternal_chapter: list = field(default_factory=list)
+    related_entities_in_perinatal_chapter: list = field(default_factory=list)
     browser_url: Optional[str] = None
 
     # place to store any response data not itemized above
@@ -82,7 +84,7 @@ class ICDLookup:
 
     @property
     def linearization_release_uri(self) -> str:
-        return get_mms_uri(self.entity_id)
+        return get_linearization_uri(entity_id=self.entity_id, linearization_name=self.linearization.name)
 
     @property
     def parent_uris(self) -> list[str]:
@@ -153,7 +155,7 @@ class ICDLookup:
         return "not_in_linearization"
 
     @classmethod
-    def from_api(cls, request_uri: str, response_data: dict) -> "ICDLookup":
+    def from_api(cls, linearization: Linearization, request_uri: str, response_data: dict) -> "LinearizationEntity":
         """
         Use the json response data from a lookup call to instantiate and return an ICDLookup object
         """
@@ -161,7 +163,9 @@ class ICDLookup:
             raise ValueError("no response_data")
         params, other = get_params_dicts(response_data=response_data, known_keys=lookup_known_keys)
         params["response_id_uri"] = response_data.get("@id", "")
-        obj = cls(**params, other=other, request_uri=request_uri)
+        params = flatten_labels(obj=params)
+
+        obj = cls(**params, linearization=linearization, other=other, request_uri=request_uri)
         return obj
 
     @property

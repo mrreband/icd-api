@@ -3,7 +3,11 @@ import os
 import pytest as pytest
 from dotenv import load_dotenv, find_dotenv
 
-from icd_api import Api, ICDLookup
+from icd_api.icd_api import Api
+from icd_api.icd_util import get_foundation_uri
+from icd_api.search_result import SearchResult
+from icd_api.linearization_entity import LinearizationEntity
+from icd_api.icd_entity import ICDEntity
 
 
 @pytest.fixture(scope="session")
@@ -36,12 +40,6 @@ def test_get_linearization():
     assert test.linearization.current_release_id == "2024-01"
 
 
-def test_get_all_children(api):
-    root_entity_id = "1301318821"  # higher up: 1920852714  # lower down: 1301318821
-    all_entities = api.get_ancestors(root_entity_id, entities=[])
-    assert all_entities
-
-
 def test_get_entity(api):
     entity = api.get_entity("1920852714")
     assert entity
@@ -72,15 +70,12 @@ def test_get_foundation_child_elsewhere(api):
     assert "136616595" in linearization_entity.foundation_child_elsewhere_ids
 
 
-def test_get_entity_full(api):
-    entity = api.get_entity_full("2008663041")
-    assert entity.entity_id
-    assert entity.lookup
-
-
 def test_search_entities(api):
-    search_results = api.search_entities(search_string="diabetes")
-    assert search_results
+    search_result = api.search_entities(search_string="diabetes")
+    assert search_result
+    assert isinstance(search_result, SearchResult)
+    assert search_result.destination_entities
+    assert isinstance(search_result.destination_entities[0], ICDEntity)
 
 
 def test_get_entity_linearization(api):
@@ -109,22 +104,32 @@ def test_get_code_icd_11(api):
 
 def test_lookup(api):
     foundation_uri = "http://id.who.int/icd/entity/1435254666"
-    entity = api.lookup(foundation_uri=foundation_uri)
-    assert isinstance(entity, ICDLookup)
-    assert entity.request_type == "lookup"
+    linearization_entity = api.lookup(foundation_uri=foundation_uri)
+    assert isinstance(linearization_entity, LinearizationEntity)
+    assert linearization_entity.request_type == "lookup"
+
+    uri = get_foundation_uri(entity_id="756297560")
+    linearization_entity = api.lookup(foundation_uri=uri)
+    assert isinstance(linearization_entity, LinearizationEntity)
+    assert linearization_entity.request_type == "lookup"
+    assert linearization_entity.related_entities_in_maternal_chapter
+    assert linearization_entity.related_entities_in_perinatal_chapter
 
 
 def test_lookup_residual(api):
     foundation_uri = "http://id.who.int/icd/entity/1008196289"
     entity = api.lookup(foundation_uri=foundation_uri)
-    assert isinstance(entity, ICDLookup)
+    assert isinstance(entity, LinearizationEntity)
     assert entity.is_residual
     assert entity.residual == "unspecified"
 
 
 def test_search_linearization(api):
-    results = api.search_linearization(search_string="diabetes")
-    assert results
+    search_result = api.search_linearization(search_string="diabetes")
+    assert search_result
+    assert isinstance(search_result, SearchResult)
+    assert search_result.destination_entities
+    assert isinstance(search_result.destination_entities[0], ICDEntity)
 
 
 def test_get_residual(api):

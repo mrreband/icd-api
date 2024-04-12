@@ -1,8 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
-from icd_api.icd_lookup import ICDLookup
-from icd_api.icd_util import get_mms_uri, get_foundation_uri, get_entity_id
+from icd_api.icd_util import get_foundation_uri, get_entity_id, get_params_dicts, flatten_labels
 
 entity_known_keys = [
     "title", "definition", "longDefinition", "fullySpecifiedName", "diagnosticCriteria", "child", "parent",
@@ -15,24 +14,22 @@ class ICDEntity:
     entity_id: str
     title: str
     definition: Optional[str] = None
-    longDefinition: Optional[str] = None
-    fullySpecifiedName: Optional[str] = None
-    diagnosticCriteria: Optional[str] = None
+    long_definition: Optional[str] = None
+    fully_specified_name: Optional[str] = None
+    diagnostic_criteria: Optional[str] = None
     child: list = field(default_factory=list)
     parent: list = field(default_factory=list)
     ancestor: list = field(default_factory=list)
     descendant: list = field(default_factory=list)
     synonym: list = field(default_factory=list)
-    narrowerTerm: list = field(default_factory=list)
+    narrower_term: list = field(default_factory=list)
     inclusion: list = field(default_factory=list)
     exclusion: list = field(default_factory=list)
-    browserUrl: Optional[str] = None
+    browser_url: Optional[str] = None
 
     # custom attributes
     entity_residual: Optional[str] = None           # if the uri ends with unspecified or other, store that here
     residuals: dict = field(default_factory=dict)   # results of icd_api.get_residuals go here
-    lookup: Optional[ICDLookup] = None              # results of icd_api.lookup go here
-    depth: Optional[int] = None                     # how many parents
 
     # place to store any response data not itemized above
     other: dict = field(default_factory=dict)
@@ -44,10 +41,6 @@ class ICDEntity:
     @property
     def foundation_uri(self):
         return get_foundation_uri(entity_id=self.entity_id)
-
-    @property
-    def linearization_release_uri(self):
-        return get_mms_uri(entity_id=self.entity_id)
 
     @property
     def parent_uris(self) -> list[str]:
@@ -101,12 +94,9 @@ class ICDEntity:
             response_data["entity_residual"] = entity_id
             response_data["entity_id"] = response_data["@id"].split("/")[-2]
 
-        params = dict((k, v) for k, v in response_data.items() if k in entity_known_keys)
-        other = dict((k, v) for k, v in response_data.items() if k not in entity_known_keys)
+        params, other = get_params_dicts(response_data=response_data, known_keys=entity_known_keys)
+        params = flatten_labels(obj=params)
         entity = cls(**params, other=other, entity_id=entity_id)
-
-        # todo: entity_id is provided to safeguard against residuals - requested id might not match response id
-        # todo: child_ids may contain "other" and "unspecified"
         return entity
 
     def __repr__(self):

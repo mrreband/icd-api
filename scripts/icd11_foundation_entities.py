@@ -3,7 +3,7 @@ import json
 from collections import defaultdict
 from dotenv import load_dotenv, find_dotenv
 
-from icd_api import Api
+from icd_api.icd_api import Api
 from icd_api.util import write_json, load_json
 
 load_dotenv(find_dotenv())

@@ -11,7 +11,8 @@ from requests_cache import CachedSession
 from icd_api.linearization import Linearization
 from icd_api.icd_util import get_foundation_uri
 from icd_api.icd_entity import ICDEntity
-from icd_api.icd_lookup import ICDLookup
+from icd_api.linearization_entity import LinearizationEntity
+from icd_api.search_result import SearchResult
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -246,7 +247,7 @@ class Api:
 
     def get_linearization_entity(self,
                                  entity_id: str,
-                                 include: Optional[str] = None) -> Union[ICDLookup, None]:
+                                 include: Optional[str] = None) -> Union[LinearizationEntity, None]:
         """
         get the response from ~/icd/release/11/{release_id}/{linearization_name}/{entity_id}
 
@@ -255,7 +256,7 @@ class Api:
         :param include: optional attributes to include in the results ("ancestor" or "descendant")
         :type include: str
         :return: linearization-specific information on the specified ICD-11 entity
-        :rtype: ICDLookup
+        :rtype: LinearizationEntity
         """
         linearization_name = self.linearization.name
         uri = f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/{entity_id}"
@@ -269,7 +270,9 @@ class Api:
             return None
 
         foundation_uri = get_foundation_uri(entity_id=entity_id)
-        return ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
+        return LinearizationEntity.from_api(request_uri=foundation_uri,
+                                            response_data=response_data,
+                                            linearization=self.linearization)
 
     def get_linearization_descendent_ids(self, entity_id: str) -> Union[list, None]:
         """
@@ -299,23 +302,6 @@ class Api:
             return obj.ancestor_ids
         return None
 
-    def get_entity_full(self, entity_id: str) -> ICDEntity:
-        """
-        :param entity_id: id of an ICD-11 foundation entity
-        :type entity_id: int
-        :return: results of /entity and /lookup and /residual
-        :rtype: dict
-        """
-        icd_entity = self.get_entity(entity_id=entity_id)
-        if icd_entity is None:
-            raise ValueError(f"entity_id {entity_id} not found")
-
-        icd_entity.residuals = self.get_residual_codes(entity_id=entity_id)
-        foundation_uri = get_foundation_uri(entity_id)
-        lookup = self.lookup(foundation_uri=foundation_uri)
-        icd_entity.lookup = lookup
-        return icd_entity
-
     def get_ancestors(self,
                       entity_id: str,
                       entities: Optional[list],
@@ -337,8 +323,6 @@ class Api:
         icd_entity = self.get_entity(entity_id=entity_id)
         if icd_entity is None:
             raise ValueError(f"entity_id {entity_id} not found")
-
-        icd_entity.depth = depth
 
         print(f"{' '*depth} get_entity: {icd_entity}")
 
@@ -385,18 +369,20 @@ class Api:
                     self.get_leaf_nodes(entities=entities, entity_id=child_id)
         return entities
 
-    def search_entities(self, search_string: str) -> list:
+    def search_entities(self, search_string: str) -> SearchResult:
         """
         search all foundation entities for the provided search string
 
         :param search_string: value to search for
         :type search_string: str
-        :return: search results as a list of objects
-        :rtype: list
+        :return: search results
+        :rtype: SearchResult
         """
         uri = f"{self.base_url}/entity/search?q={search_string}"
         results = self.post_request(uri=uri)
-        return results["destinationEntities"]
+
+        search_result = SearchResult.from_api(**results)
+        return search_result
 
     def get_linearization(self, linearization_name: str, release_id: Optional[str]) -> Linearization:
         """
@@ -519,7 +505,7 @@ class Api:
         response_data = self.get_request(uri=uri)
         return response_data
 
-    def lookup(self, foundation_uri: str) -> Union[ICDLookup, None]:
+    def lookup(self, foundation_uri: str) -> Union[LinearizationEntity, None]:
         """
         This endpoint allows looking up a foundation entity within the mms linearization
         and returns where that entity is coded in this linearization.
@@ -538,17 +524,21 @@ class Api:
         if response_data is None:
             return None
 
-        entity = ICDLookup.from_api(request_uri=foundation_uri, response_data=response_data)
+        entity = LinearizationEntity.from_api(request_uri=foundation_uri,
+                                              response_data=response_data,
+                                              linearization=self.linearization)
         return entity
 
-    def search_linearization(self, search_string: str) -> dict:
+    def search_linearization(self, search_string: str) -> SearchResult:
         """
         get the response from ~/icd/release/11/{release_id}/{linearization_name}/{search_string}
         """
         linearization_name = self.linearization.name
         uri = f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/search?q={search_string}"
         results = self.post_request(uri=uri)
-        return results["destinationEntities"]
+
+        search_result = SearchResult.from_api(**results)
+        return search_result
 
     @classmethod
     def from_environment(cls):
