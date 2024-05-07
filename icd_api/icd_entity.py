@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -102,9 +103,12 @@ class ICDEntity:
     def __repr__(self):
         return f"Entity {self.entity_id} - {self.title}"
 
-    def to_json(self):
+    def to_dict(self):
         results = self.__dict__
         results = dict((key, value) for key, value in results.items() if value is not None and value != [])
         for key in ["context", "request_uri", "request_uris"]:
             results.pop(key, None)
         return results
+
+    def to_json(self):
+        return json.dumps(self.to_dict())

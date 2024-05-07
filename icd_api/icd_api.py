@@ -261,7 +261,8 @@ class Api:
         linearization_name = self.linearization.name
         uri = f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/{entity_id}"
         if include:
-            if include.lower() not in ["ancestor", "descendant"]:
+            includes = include.lower().split(",")
+            if not all([i in ["ancestor", "descendant"] for i in includes]):
                 raise ValueError(f"Unexpected include value '{include}' (expected 'ancestor' or 'descendant')")
             uri += f"?include={include.lower()}"
 

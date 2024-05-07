@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass, field
 from typing import List, Optional
 
@@ -240,9 +241,10 @@ class LinearizationEntity:
     def node(self) -> str:
         return f"{self.node_filled} {self.node_color} circle"
 
-    def to_json(self, include_props: Optional[list] = None, exclude_attrs: Optional[list] = None) -> dict:
+    def to_dict(self, include_props: Optional[list] = None, exclude_attrs: Optional[list] = None) -> dict:
         results = self.__dict__
         results = dict((key, value) for key, value in results.items() if value is not None and value != [])
+        results["linearization"] = results["linearization"].__dict__
 
         if exclude_attrs is None:
             exclude_attrs = []
@@ -255,3 +257,6 @@ class LinearizationEntity:
             results[include_prop] = getattr(self, include_prop)
 
         return results
+
+    def to_json(self):
+        return json.dumps(self.to_dict())

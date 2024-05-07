@@ -8,6 +8,10 @@ from icd_api.icd_util import get_foundation_uri
 from icd_api.search_result import SearchResult
 from icd_api.linearization_entity import LinearizationEntity
 from icd_api.icd_entity import ICDEntity
+from icd_api.util import write_json
+
+tests_data_folder = os.path.join(os.path.dirname(__file__), "data")
+os.makedirs(tests_data_folder, exist_ok=True)
 
 
 @pytest.fixture(scope="session")
@@ -46,6 +50,19 @@ def test_get_entity(api):
 
     for child in entity.child_ids:
         print(child)
+
+    file_path = os.path.join(tests_data_folder, "test_entity.json")
+    write_json(data=entity.to_dict(), file_path=file_path)
+
+
+def test_json(api):
+    entity = api.get_entity(entity_id="1376721186")
+    data = entity.to_json()
+    assert data
+
+    entity = api.get_linearization_entity(entity_id="1376721186")
+    data = entity.to_json()
+    assert data
 
 
 def test_get_linearization_entity(api):
