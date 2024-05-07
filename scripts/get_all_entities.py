@@ -71,7 +71,7 @@ def get_all_entities():
             )
 
             with open(target_file_path, "w") as file:
-                data = json.dumps(grandchild_entities, default=lambda x: x.to_json(), indent=4)
+                data = json.dumps(grandchild_entities, default=lambda x: x.to_dict(), indent=4)
                 file.write(data)
         else:
             print(f"get_all_entities - {child_id}.json already exists")
