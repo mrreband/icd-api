@@ -1,7 +1,6 @@
 import os
 
 import pytest as pytest
-import requests
 from dotenv import load_dotenv, find_dotenv
 from requests_cache import CachedSession, CachedResponse, OriginalResponse
 
