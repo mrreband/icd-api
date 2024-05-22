@@ -6,7 +6,7 @@ import urllib.parse
 
 import requests
 import urllib3
-from requests_cache import CachedSession
+from requests_cache import CachedSession, CachedResponse
 
 from icd_api.linearization import Linearization
 from icd_api.icd_util import get_foundation_uri
@@ -190,6 +190,7 @@ class Api:
         r = self.session.get(uri, headers=self.headers, verify=False)
         if r.status_code == 200:
             response_data = r.json()
+            response_data["cached_response"] = isinstance(r, CachedResponse)
             return response_data
         elif r.status_code == 404:
             return None
