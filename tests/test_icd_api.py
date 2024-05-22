@@ -2,6 +2,7 @@ import os
 
 import pytest as pytest
 from dotenv import load_dotenv, find_dotenv
+from requests_cache import CachedSession, CachedResponse, OriginalResponse
 
 from icd_api.icd_api import Api
 from icd_api.icd_util import get_foundation_uri
@@ -200,6 +201,40 @@ def test_cache_nocache():
     del _api
     if os.path.exists("sure why not.sqlite"):
         os.remove("sure why not.sqlite")
+
+
+def check_cache_codes(entity_id: str, allowed_codes_str: str, expected_response_types: list):
+    """
+    helper for test_cache_codes - make the same request multiple times, making sure the response is cached or not
+    """
+    cache_name = "test_cache_codes"
+    if os.path.exists(f"{cache_name}.sqlite"):
+        os.remove(f"{cache_name}.sqlite")
+
+    os.environ["ICDAPI_REQUESTS_CACHE_NAME"] = cache_name
+    os.environ["ICDAPI_REQUESTS_CACHE_ALLOWABLE_CODES"] = allowed_codes_str
+
+    _api = Api.from_environment()
+    cached_session = _api.session
+    assert isinstance(cached_session, CachedSession)
+
+    uri = f"{_api.base_url}/entity/{entity_id}"
+    if _api.linearization and _api.current_release_id:
+        uri += f"?releaseId={_api.current_release_id}"
+
+    for idx, expected_response in enumerate(expected_response_types):
+        r = cached_session.get(uri, headers=_api.headers, verify=False)
+        assert isinstance(r, expected_response)
+
+
+def test_cache_codes(api):
+    # for a real entity id, the 2nd response should be cached, regardless of 404 inclusion:
+    check_cache_codes(entity_id="515117475", allowed_codes_str="200", expected_response_types=[OriginalResponse, CachedResponse])
+    check_cache_codes(entity_id="515117475", allowed_codes_str="200,404", expected_response_types=[OriginalResponse, CachedResponse])
+
+    # for a nonexistent entity id, the behavior depends on allowed codes:
+    check_cache_codes(entity_id="fake_entity_id", allowed_codes_str="200", expected_response_types=[OriginalResponse, OriginalResponse])
+    check_cache_codes(entity_id="fake_entity_id", allowed_codes_str="200,404", expected_response_types=[OriginalResponse, CachedResponse])
 
 
 if __name__ == '__main__':

@@ -552,9 +552,16 @@ class Api:
         client_id = os.getenv("ICDAPI_CLIENT_ID")
         client_secret = os.getenv("ICDAPI_CLIENT_SECRET")
 
+        # requests_cache settings
+        cache_name = os.getenv("ICDAPI_REQUESTS_CACHE_NAME")
+        backend = os.getenv("ICDAPI_REQUESTS_CACHE_BACKEND", "sqlite")
+        allowable_codes = os.getenv("ICDAPI_REQUESTS_CACHE_ALLOWABLE_CODES", "200").split(",")
+        allowable_codes = [int(c.strip()) for c in allowable_codes]
+
         cached_session_config = {
-            "cache_name": os.getenv("ICDAPI_REQUESTS_CACHE_NAME"),
-            "backend": os.getenv("ICDAPI_REQUESTS_CACHE_BACKEND", "sqlite")
+            "cache_name": cache_name,
+            "backend": backend,
+            "allowable_codes": allowable_codes
         }
 
         return cls(base_url=base_url,
