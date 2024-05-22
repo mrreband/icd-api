@@ -555,7 +555,7 @@ class Api:
         # requests_cache settings
         cache_name = os.getenv("ICDAPI_REQUESTS_CACHE_NAME")
         backend = os.getenv("ICDAPI_REQUESTS_CACHE_BACKEND", "sqlite")
-        allowable_codes = os.getenv("ICDAPI_REQUESTS_CACHE_ALLOWED_CODES", "200").split(",")
+        allowable_codes = os.getenv("ICDAPI_REQUESTS_CACHE_ALLOWABLE_CODES", "200").split(",")
         allowable_codes = [int(c.strip()) for c in allowable_codes]
 
         cached_session_config = {

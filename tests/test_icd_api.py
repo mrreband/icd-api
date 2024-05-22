@@ -213,7 +213,7 @@ def check_cache_codes(entity_id: str, allowed_codes_str: str, expected_response_
         os.remove(f"{cache_name}.sqlite")
 
     os.environ["ICDAPI_REQUESTS_CACHE_NAME"] = cache_name
-    os.environ["ICDAPI_REQUESTS_CACHE_ALLOWED_CODES"] = allowed_codes_str
+    os.environ["ICDAPI_REQUESTS_CACHE_ALLOWABLE_CODES"] = allowed_codes_str
 
     _api = Api.from_environment()
     cached_session = _api.session
