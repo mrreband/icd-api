@@ -237,5 +237,11 @@ def test_cache_codes(api):
     check_cache_codes(entity_id="fake_entity_id", allowed_codes_str="200,404", expected_response_types=[OriginalResponse, CachedResponse])
 
 
+def test_cached_response(api):
+    entity_id = 515117475
+    entity = api.get_entity(entity_id=entity_id)
+    assert "cached_response" in entity.other.keys()
+
+
 if __name__ == '__main__':
     pytest.main(["test_icd_api.py"])

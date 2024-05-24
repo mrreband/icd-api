@@ -11,7 +11,7 @@ tests_require = [
 
 setup(
     name='icd-api',
-    version="0.0.9",
+    version="0.0.10",
     description='',
     url='https://github.com/mrreband/icd-api',
     packages=['icd_api'],
