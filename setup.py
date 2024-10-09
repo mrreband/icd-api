@@ -1,8 +1,9 @@
 from setuptools import setup
 
 install_requires = [
-    'python-dotenv',
-    'requests',
+    'python-dotenv==0.21.0',
+    'requests==2.28.1',
+    'requests_cache==1.2.0'
 ]
 
 tests_require = [
