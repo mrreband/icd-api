@@ -248,7 +248,8 @@ class Api:
 
     def get_linearization_entity(self,
                                  entity_id: str,
-                                 include: Optional[str] = None) -> Union[LinearizationEntity, None]:
+                                 include: Optional[str] = None,
+                                 release_id: Optional[str] = None) -> Union[LinearizationEntity, None]:
         """
         get the response from ~/icd/release/11/{release_id}/{linearization_name}/{entity_id}
 
@@ -256,11 +257,16 @@ class Api:
         :type entity_id: int
         :param include: optional attributes to include in the results ("ancestor" or "descendant")
         :type include: str
+        :param release_id: optional release_id, fallback on self.current_release_id
+        :type release_id: str
         :return: linearization-specific information on the specified ICD-11 entity
         :rtype: LinearizationEntity
         """
+        if release_id is None:
+            release_id = self.current_release_id
+
         linearization_name = self.linearization.name
-        uri = f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/{entity_id}"
+        uri = (f"{self.base_url}/release/11/{release_id}/{linearization_name}/{entity_id}")
         if include:
             includes = include.lower().split(",")
             if not all([i in ["ancestor", "descendant"] for i in includes]):
@@ -276,30 +282,34 @@ class Api:
                                             response_data=response_data,
                                             linearization=self.linearization)
 
-    def get_linearization_descendent_ids(self, entity_id: str) -> Union[list, None]:
+    def get_linearization_descendent_ids(self, entity_id: str, release_id: Optional[str] = None) -> Union[list, None]:
         """
         get all descendents of the provided entity, in the context of the provided linearization
 
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
+        :param release_id: optional release_id, fallback on self.current_release_id
+        :type release_id: str
         :return: list of descendant entity_ids
         :rtype: list
         """
-        obj = self.get_linearization_entity(entity_id=entity_id, include="descendant")
+        obj = self.get_linearization_entity(entity_id=entity_id, include="descendant", release_id=release_id)
         if obj:
             return obj.descendant_ids
         return None
 
-    def get_linearization_ancestor_ids(self, entity_id: str) -> Union[list, None]:
+    def get_linearization_ancestor_ids(self, entity_id: str, release_id: Optional[str] = None) -> Union[list, None]:
         """
         get all ancestors of the provided entity, in the context of the provided linearization
 
         :param entity_id: id of an ICD-11 foundation entity
         :type entity_id: int
+        :param release_id: optional release_id, fallback on self.current_release_id
+        :type release_id: str
         :return: list of descendant entity_ids
         :rtype: list
         """
-        obj = self.get_linearization_entity(entity_id=entity_id, include="ancestor")
+        obj = self.get_linearization_entity(entity_id=entity_id, include="ancestor", release_id=release_id)
         if obj:
             return obj.ancestor_ids
         return None
@@ -507,7 +517,7 @@ class Api:
         response_data = self.get_request(uri=uri)
         return response_data
 
-    def lookup(self, foundation_uri: str) -> Union[LinearizationEntity, None]:
+    def lookup(self, foundation_uri: str, release_id: Optional[str] = None) -> Union[LinearizationEntity, None]:
         """
         This endpoint allows looking up a foundation entity within the mms linearization
         and returns where that entity is coded in this linearization.
@@ -519,8 +529,10 @@ class Api:
         If the entity is not included in the linearization then the system checks where that entity
         is aggregated to and then returns that entity.
         """
+        if release_id is None:
+            release_id = self.current_release_id
         quoted_url = urllib.parse.quote(foundation_uri, safe='')
-        uri = f"{self.base_url}/release/11/{self.current_release_id}/mms/lookup?foundationUri={quoted_url}"
+        uri = f"{self.base_url}/release/11/{release_id}/mms/lookup?foundationUri={quoted_url}"
 
         response_data = self.get_request(uri=uri)
         if response_data is None:
@@ -531,12 +543,14 @@ class Api:
                                               linearization=self.linearization)
         return entity
 
-    def search_linearization(self, search_string: str) -> SearchResult:
+    def search_linearization(self, search_string: str, release_id: Optional[str] = None) -> SearchResult:
         """
         get the response from ~/icd/release/11/{release_id}/{linearization_name}/{search_string}
         """
+        if release_id is None:
+            release_id = self.current_release_id
         linearization_name = self.linearization.name
-        uri = f"{self.base_url}/release/11/{self.current_release_id}/{linearization_name}/search?q={search_string}"
+        uri = f"{self.base_url}/release/11/{release_id}/{linearization_name}/search?q={search_string}"
         results = self.post_request(uri=uri)
 
         search_result = SearchResult.from_api(**results)
