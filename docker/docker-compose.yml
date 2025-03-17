@@ -1,0 +1,44 @@
+version: '3.4'
+
+x-common-settings: &common-settings
+  environment:
+    - acceptLicense=true
+    - saveAnalytics=true
+  scale: 1
+
+services:
+  apiv20:
+    <<: *common-settings
+    image: whoicd/icd-api:2.0.2
+    ports:
+      - "8020:80"
+
+  apiv21:
+    <<: *common-settings
+    image: whoicd/icd-api:2.1.0
+    ports:
+      - "8021:80"
+
+  apiv22:
+    <<: *common-settings
+    image: whoicd/icd-api:2.2.1
+    ports:
+      - "8022:80"
+
+  apiv23:
+    <<: *common-settings
+    image: whoicd/icd-api:2.3.0
+    ports:
+      - "8023:80"
+
+  apiv24:
+    <<: *common-settings
+    image: whoicd/icd-api:2.4.0
+    ports:
+      - "8024:80"
+
+  apiv25:
+    <<: *common-settings
+    image: whoicd/icd-api:2.5.0
+    ports:
+      - "8025:80"
