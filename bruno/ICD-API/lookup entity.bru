@@ -1,0 +1,21 @@
+meta {
+  name: lookup entity
+  type: http
+  seq: 2
+}
+
+get {
+  url: http://{{base_url}}:{{port}}/icd/release/11/{{release_id}}/mms/lookup?foundationUri=http://id.who.int/icd/entity/1047556017
+  body: none
+  auth: none
+}
+
+params:query {
+  foundationUri: http://id.who.int/icd/entity/1047556017
+}
+
+headers {
+  accept: application/json
+  API-Version: v2
+  Accept-Language: en
+}
