@@ -1,0 +1,17 @@
+meta {
+  name: get linearization entity
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://{{base_url}}:{{port}}/icd/release/11/{{release_id}}/mms/1047556017
+  body: none
+  auth: none
+}
+
+headers {
+  accept: application/json
+  API-Version: v2
+  Accept-Language: en
+}

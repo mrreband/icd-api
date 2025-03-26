@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields, MISSING
 from typing import List, Optional
 
 from icd_api.linearization import Linearization
@@ -49,6 +49,17 @@ class LinearizationEntity:
 
     # place to store any response data not itemized above
     other: dict = field(default_factory=dict)
+
+    def __init__(self, **kwargs):
+        unknown_kwargs = kwargs.pop("unknown_kwargs", dict())
+        for f in fields(self):
+            if f.name in kwargs:
+                setattr(self, f.name, kwargs.pop(f.name))
+            elif f.default_factory is not MISSING:
+                setattr(self, f.name, f.default_factory())
+            elif f.default is not MISSING:
+                setattr(self, f.name, f.default)
+        self.unknown_kwargs = {**unknown_kwargs, **kwargs}
 
     def __repr__(self):
         response = f"Lookup {self.request_id} ({self.response_type}) - "

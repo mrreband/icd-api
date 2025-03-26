@@ -1,0 +1,22 @@
+meta {
+  name: get entity
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://{{base_url}}:{{port}}/icd/entity/1006501843?releaseId={{release_id}}&include=ancestor,descendant
+  body: none
+  auth: none
+}
+
+params:query {
+  releaseId: {{release_id}}
+  include: ancestor,descendant
+}
+
+headers {
+  accept: application/json
+  API-Version: v2
+  Accept-Language: en
+}
